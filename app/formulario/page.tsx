@@ -9,6 +9,7 @@ import { PageLayout } from "@/components/page-layout"
 
 export default function FormularioPage() {
   const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     latitud: "",
     longitud: "",
@@ -21,17 +22,76 @@ export default function FormularioPage() {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsLoading(true)
 
-    // Calcular un puntaje simple basado en los datos ingresados
-    // En una aplicación real, esto sería un algoritmo más complejo
-    const score = Math.floor(Math.random() * 100) + 1
+    try {
+      // Validar que las coordenadas estén en rangos válidos
+      const lat = Number.parseFloat(formData.latitud)
+      const lng = Number.parseFloat(formData.longitud)
 
-    // Navegar a la página de resultados con los datos del formulario
-    router.push(
-      `/resultado?score=${score}&latitud=${encodeURIComponent(formData.latitud)}&longitud=${encodeURIComponent(formData.longitud)}&tipo=${encodeURIComponent(formData.tipoComercio)}&presupuesto=${encodeURIComponent(formData.presupuesto)}`,
-    )
+      if (lat < -90 || lat > 90) {
+        alert("La latitud debe estar entre -90 y 90")
+        setIsLoading(false)
+        return
+      }
+
+      if (lng < -180 || lng > 180) {
+        alert("La longitud debe estar entre -180 y 180")
+        setIsLoading(false)
+        return
+      }
+
+      // Preparar datos para el endpoint
+      const requestData = {
+        latitude: lat,
+        longitude: lng,
+        business_type: formData.tipoComercio,
+        budget: Number.parseInt(formData.presupuesto),
+      }
+
+      // Enviar datos al endpoint
+      const response = await fetch("/api/idea", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestData),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`)
+      }
+
+      const result = await response.json()
+
+      // Guardar todos los datos en sessionStorage (se borra al cerrar la pestaña)
+      const analysisData = {
+        // Datos del backend
+        risk_score: result.risk_score,
+        viability_score: result.viability_score,
+        competition_score: result.competition_score,
+        recommendations: result.recommendations,
+        // Datos del formulario
+        latitude: lat,
+        longitude: lng,
+        businessType: formData.tipoComercio,
+        budget: Number.parseInt(formData.presupuesto),
+        // Timestamp para validar que no sea muy viejo
+        timestamp: Date.now(),
+      }
+
+      sessionStorage.setItem("analysisResult", JSON.stringify(analysisData))
+
+      // Navegar a la página de resultados sin parámetros
+      router.push("/resultado")
+    } catch (error) {
+      console.error("Error al analizar viabilidad:", error)
+      alert("Error al procesar el análisis. Por favor, intenta nuevamente.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -41,43 +101,68 @@ export default function FormularioPage() {
           <div className="p-6 border-b">
             <h2 className="text-2xl font-bold">Análisis de viabilidad comercial</h2>
             <p className="text-gray-600 mt-2">
-              Ingresa las coordenadas, tipo de comercio y presupuesto para evaluar la viabilidad de tu negocio.
+              Ingresa las coordenadas de ubicación, tipo de comercio y presupuesto para evaluar la viabilidad de tu
+              negocio.
             </p>
           </div>
           <form onSubmit={handleSubmit}>
             <div className="p-6 space-y-6">
-              <div className="space-y-2">
-                <label htmlFor="latitud" className="text-sm font-medium">
-                  Latitud
-                </label>
-                <input
-                  id="latitud"
-                  name="latitud"
-                  type="number"
-                  step="any"
-                  placeholder="Ej: -34.6037"
-                  value={formData.latitud}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+              <div className="space-y-4">
+                <label className="text-sm font-medium">Ubicación del negocio</label>
 
-              <div className="space-y-2">
-                <label htmlFor="longitud" className="text-sm font-medium">
-                  Longitud
-                </label>
-                <input
-                  id="longitud"
-                  name="longitud"
-                  type="number"
-                  step="any"
-                  placeholder="Ej: -58.3816"
-                  value={formData.longitud}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                {/* Campos de coordenadas */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label htmlFor="latitud" className="text-sm font-medium">
+                      Latitud
+                    </label>
+                    <input
+                      id="latitud"
+                      name="latitud"
+                      type="number"
+                      step="any"
+                      placeholder="Ej: -34.6037"
+                      value={formData.latitud}
+                      onChange={handleChange}
+                      required
+                      disabled={isLoading}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    />
+                    <p className="text-xs text-gray-500">Rango válido: -90 a 90</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="longitud" className="text-sm font-medium">
+                      Longitud
+                    </label>
+                    <input
+                      id="longitud"
+                      name="longitud"
+                      type="number"
+                      step="any"
+                      placeholder="Ej: -58.3816"
+                      value={formData.longitud}
+                      onChange={handleChange}
+                      required
+                      disabled={isLoading}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    />
+                    <p className="text-xs text-gray-500">Rango válido: -180 a 180</p>
+                  </div>
+                </div>
+
+                {/* Ayuda para obtener coordenadas */}
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <p className="text-sm text-blue-800">
+                    💡 <strong>¿Cómo obtener coordenadas?</strong>
+                  </p>
+                  <ul className="text-xs text-blue-700 mt-1 space-y-1">
+                    <li>• Abre Google Maps y busca tu ubicación</li>
+                    <li>• Haz clic derecho en el punto exacto</li>
+                    <li>• Copia las coordenadas que aparecen en el menú</li>
+                    <li>• Pega los números en los campos de arriba</li>
+                  </ul>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -90,7 +175,8 @@ export default function FormularioPage() {
                   value={formData.tipoComercio}
                   onChange={handleChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={isLoading}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                 >
                   <option value="">Selecciona el tipo de comercio</option>
                   <option value="cafe">☕ Café</option>
@@ -111,24 +197,35 @@ export default function FormularioPage() {
                   value={formData.presupuesto}
                   onChange={handleChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={isLoading}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
+                <p className="text-xs text-gray-500">Ingresa tu presupuesto inicial disponible</p>
               </div>
             </div>
             <div className="p-6 border-t flex justify-between">
               <Link href="/">
                 <button
                   type="button"
-                  className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isLoading}
                 >
                   ← Volver
                 </button>
               </Link>
               <button
                 type="submit"
-                className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                disabled={isLoading}
+                className="inline-flex items-center justify-center rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Analizar viabilidad
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Analizando...
+                  </>
+                ) : (
+                  "Analizar viabilidad"
+                )}
               </button>
             </div>
           </form>

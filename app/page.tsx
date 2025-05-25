@@ -58,17 +58,32 @@ export default function LandingPage() {
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
                 <Link href="/formulario">
-                  <button className="inline-flex items-center justify-center gap-1 rounded-md bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 transition-colors">
-                    📍 Comenzar análisis
+                  <button className="inline-flex items-center justify-center gap-1 rounded-md bg-gray-900 px-6 py-3 text-sm font-medium text-white hover:bg-gray-800 transition-colors">
+                    Comenzar análisis
                   </button>
                 </Link>
               </div>
             </div>
             <div className="flex items-center justify-center">
-              <div className="grid gap-4 sm:grid-cols-2 w-full max-w-lg">
-                {features.map((feature, index) => (
-                  <FeatureCard key={index} title={feature.title} description={feature.description} />
-                ))}
+              <div className="w-full">
+                <div className="flex flex-col gap-4">
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <FeatureCard title={features[0].title} description={features[0].description} />
+                    </div>
+                    <div className="flex-1">
+                      <FeatureCard title={features[1].title} description={features[1].description} />
+                    </div>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <FeatureCard title={features[2].title} description={features[2].description} />
+                    </div>
+                    <div className="flex-1">
+                      <FeatureCard title={features[3].title} description={features[3].description} />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -84,14 +99,22 @@ export default function LandingPage() {
               </p>
             </div>
           </div>
-          <div className="mx-auto grid max-w-5xl items-center gap-6 py-12 lg:grid-cols-3">
-            {steps.map((step) => (
-              <StepCard key={step.step} step={step.step} title={step.title} description={step.description} />
-            ))}
+          <div className="mx-auto max-w-5xl py-12">
+            <div className="flex flex-col lg:flex-row gap-6">
+              <div className="flex-1">
+                <StepCard step={steps[0].step} title={steps[0].title} description={steps[0].description} />
+              </div>
+              <div className="flex-1">
+                <StepCard step={steps[1].step} title={steps[1].title} description={steps[1].description} />
+              </div>
+              <div className="flex-1">
+                <StepCard step={steps[2].step} title={steps[2].title} description={steps[2].description} />
+              </div>
+            </div>
           </div>
           <div className="flex justify-center">
             <Link href="/formulario">
-              <button className="inline-flex items-center justify-center rounded-md bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 transition-colors">
+              <button className="inline-flex items-center justify-center rounded-md bg-gray-900 px-6 py-3 text-sm font-medium text-white hover:bg-gray-800 transition-colors">
                 Comenzar ahora
               </button>
             </Link>

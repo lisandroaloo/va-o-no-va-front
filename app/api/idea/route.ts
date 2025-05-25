@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar que las variables de entorno estén configuradas
-    const BACKEND_URL = "http://localhost:8000"
+    const BACKEND_URL = "http://localhost:8080"
 
     if (!BACKEND_URL) {
       console.error("BACKEND_URL environment variable is not set")

@@ -6,6 +6,8 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { PageLayout } from "@/components/page-layout"
+import usePostIdea from "@/hooks/usePostIdea"
+
 
 export default function FormularioPage() {
   const router = useRouter()
@@ -16,6 +18,7 @@ export default function FormularioPage() {
     tipoComercio: "",
     presupuesto: "",
   })
+  const { loading, postIdea } = usePostIdea(); // ✅ Correcto si devuelve un objeto
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -47,32 +50,20 @@ export default function FormularioPage() {
       const requestData = {
         latitude: lat,
         longitude: lng,
-        business_type: formData.tipoComercio,
+        businessType: formData.tipoComercio,
         budget: Number.parseInt(formData.presupuesto),
       }
 
       // Enviar datos al endpoint
-      const response = await fetch("/api/idea", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestData),
-      })
-
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
-      }
-
-      const result = await response.json()
+      const result = await postIdea(requestData)
 
       // Guardar todos los datos en sessionStorage (se borra al cerrar la pestaña)
       const analysisData = {
         // Datos del backend
-        risk_score: result.risk_score,
-        viability_score: result.viability_score,
-        competition_score: result.competition_score,
-        recommendations: result.recommendations,
+        risk: result?.risk,
+        viabilityScore: result?.viabilityScore,
+        competition: result?.competition,
+        recommendations: result?.recommendations,
         // Datos del formulario
         latitude: lat,
         longitude: lng,

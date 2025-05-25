@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation"
 import { PageLayout } from "@/components/page-layout"
 
 interface AnalysisData {
-  risk_score: number
-  viability_score: number
-  competition_score: number
+  risk: IValue
+  viabilityScore: number
+  competition: IValue
   recommendations: string[]
   latitude: number
   longitude: number
@@ -15,6 +15,10 @@ interface AnalysisData {
   budget: number
   timestamp: number
 }
+export interface IValue {
+  value: number
+}
+
 
 export default function ResultadoPage() {
   const router = useRouter()
@@ -30,6 +34,8 @@ export default function ResultadoPage() {
     try {
       const storedData = sessionStorage.getItem("analysisResult")
 
+
+      
       if (!storedData) {
         // No hay datos, redirigir al formulario
         router.push("/formulario")
@@ -48,12 +54,13 @@ export default function ResultadoPage() {
       }
 
       setAnalysisData(data)
+      console.log(data)
       setIsLoading(false)
 
       // Animar las barras de progreso
-      setTimeout(() => setProgressViability(data.viability_score), 500)
-      setTimeout(() => setProgressRisk(data.risk_score), 700)
-      setTimeout(() => setProgressCompetition(data.competition_score), 900)
+      setTimeout(() => setProgressViability(data.viabilityScore), 500)
+      setTimeout(() => setProgressRisk(data.risk.value), 700)
+      setTimeout(() => setProgressCompetition(data.competition.value), 900)
     } catch (error) {
       console.error("Error loading analysis data:", error)
       sessionStorage.removeItem("analysisResult")
@@ -121,9 +128,9 @@ export default function ResultadoPage() {
 
   // Determinar el estado general basado en viability_score
   const getOverallStatus = () => {
-    if (analysisData.viability_score >= 70)
+    if (analysisData.viabilityScore >= 70)
       return { icon: "✅", message: "Proyecto recomendado", color: "text-green-600" }
-    if (analysisData.viability_score >= 40)
+    if (analysisData.viabilityScore >= 40)
       return { icon: "⚠️", message: "Proyecto con potencial", color: "text-yellow-600" }
     return { icon: "❌", message: "Proyecto no recomendado", color: "text-red-600" }
   }
@@ -177,16 +184,16 @@ export default function ResultadoPage() {
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">📈 Puntuación de Viabilidad</span>
-                  <span className="text-sm font-medium">{analysisData.viability_score}%</span>
+                  <span className="text-sm font-medium">{analysisData.viabilityScore}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3">
                   <div
-                    className={`h-3 rounded-full transition-all duration-1000 ease-out ${getScoreColor(analysisData.viability_score)}`}
+                    className={`h-3 rounded-full transition-all duration-1000 ease-out ${getScoreColor(analysisData.viabilityScore)}`}
                     style={{ width: `${progressViability}%` }}
                   ></div>
                 </div>
                 <p className="text-xs text-gray-600">
-                  {getScoreInterpretation(analysisData.viability_score, "viability")}
+                  {getScoreInterpretation(analysisData.viabilityScore, "viability")}
                 </p>
               </div>
 
@@ -194,31 +201,31 @@ export default function ResultadoPage() {
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">⚠️ Puntuación de Riesgo</span>
-                  <span className="text-sm font-medium">{analysisData.risk_score}%</span>
+                  <span className="text-sm font-medium">{analysisData.risk.value}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3">
                   <div
-                    className={`h-3 rounded-full transition-all duration-1000 ease-out ${getScoreColor(analysisData.risk_score, true)}`}
+                    className={`h-3 rounded-full transition-all duration-1000 ease-out ${getScoreColor(analysisData.risk.value, true)}`}
                     style={{ width: `${progressRisk}%` }}
                   ></div>
                 </div>
-                <p className="text-xs text-gray-600">{getScoreInterpretation(analysisData.risk_score, "risk")}</p>
+                <p className="text-xs text-gray-600">{getScoreInterpretation(analysisData.risk.value, "risk")}</p>
               </div>
 
               {/* Competencia */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">🏢 Análisis de Competencia</span>
-                  <span className="text-sm font-medium">{analysisData.competition_score}%</span>
+                  <span className="text-sm font-medium">{analysisData.competition.value}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3">
                   <div
-                    className={`h-3 rounded-full transition-all duration-1000 ease-out ${getScoreColor(analysisData.competition_score)}`}
+                    className={`h-3 rounded-full transition-all duration-1000 ease-out ${getScoreColor(analysisData.competition.value)}`}
                     style={{ width: `${progressCompetition}%` }}
                   ></div>
                 </div>
                 <p className="text-xs text-gray-600">
-                  {getScoreInterpretation(analysisData.competition_score, "competition")}
+                  {getScoreInterpretation(analysisData.competition.value, "competition")}
                 </p>
               </div>
             </div>

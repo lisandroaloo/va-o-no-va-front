@@ -24,6 +24,8 @@ export default function ResultadoPage() {
   const router = useRouter()
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isDownloading, setIsDownloading] = useState(false)
+
 
   const [progressViability, setProgressViability] = useState(0)
   const [progressRisk, setProgressRisk] = useState(0)
@@ -35,7 +37,7 @@ export default function ResultadoPage() {
       const storedData = sessionStorage.getItem("analysisResult")
 
 
-      
+
       if (!storedData) {
         // No hay datos, redirigir al formulario
         router.push("/formulario")
@@ -93,13 +95,56 @@ export default function ResultadoPage() {
     )
   }
 
-  // Función para obtener color basado en el score
-  const getScoreColor = (score: number, isRisk = false) => {
+  const downloadPDF = async () => {
+    if (!analysisData) return
+
+    setIsDownloading(true)
+    try {
+      const response = await fetch("/api/generate-pdf", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(analysisData),
+      })
+
+      if (!response.ok) {
+        throw new Error("Error al generar el PDF")
+      }
+
+      // Obtener el blob del PDF
+      const blob = await response.blob()
+
+      // Crear URL temporal para el blob
+      const url = window.URL.createObjectURL(blob)
+
+      // Crear elemento de descarga
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `reporte-viabilidad-${analysisData.businessType}-${new Date().toISOString().split("T")[0]}.pdf`
+      document.body.appendChild(a)
+      a.click()
+
+      // Limpiar
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error("Error downloading PDF:", error)
+      alert("Error al descargar el reporte. Por favor, intenta nuevamente.")
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
+  const getScoreColor = (score: number, isRisk = false, isCompetition = false) => {
     if (isRisk) {
-      // Para riesgo: menor score = mejor (verde), mayor score = peor (rojo)
       if (score <= 30) return "bg-green-500"
       if (score <= 60) return "bg-yellow-500"
       return "bg-red-500"
+    } else if (isCompetition) {
+      if (score >= 20) return "bg-red-500"
+      if (score >= 10) return "bg-yellow-500"
+      return "bg-green-500"
     } else {
       // Para viabilidad y competencia: mayor score = mejor
       if (score >= 70) return "bg-green-500"
@@ -119,9 +164,9 @@ export default function ResultadoPage() {
       if (score >= 40) return "Viabilidad moderada"
       return "Baja viabilidad"
     } else if (type === "competition") {
-      if (score >= 70) return "Ventaja competitiva"
-      if (score >= 40) return "Competencia moderada"
-      return "Alta competencia"
+      if (score >= 20) return "Alta competencia"
+      if (score >= 10) return "Competencia moderada"
+      return "Baja competencia"
     }
     return ""
   }
@@ -160,8 +205,13 @@ export default function ResultadoPage() {
           <div className="p-6 border-b">
             <h2 className="text-2xl font-bold">Resultado del análisis</h2>
             <p className="text-gray-600 mt-2">
-              Análisis de viabilidad para un {getComercioEmoji()} {analysisData.businessType} en las coordenadas{" "}
-              {analysisData.latitude.toFixed(4)}, {analysisData.longitude.toFixed(4)} con presupuesto de $
+              Análisis de viabilidad para un{" "}
+              {{
+                "convenience-store": "kiosco",
+                "restaurant": "restaurante",
+                "cafe": "café"
+              }[analysisData.businessType] || analysisData.businessType}{" "}
+              en las coordenadas {analysisData.latitude.toFixed(4)}, {analysisData.longitude.toFixed(4)} con un presupuesto de $
               {analysisData.budget.toLocaleString()} USD
             </p>
           </div>
@@ -216,13 +266,21 @@ export default function ResultadoPage() {
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">🏢 Análisis de Competencia</span>
-                  <span className="text-sm font-medium">{analysisData.competition.value}%</span>
+                  <span className="text-sm font-medium">{analysisData.competition.value} </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3">
                   <div
-                    className={`h-3 rounded-full transition-all duration-1000 ease-out ${getScoreColor(analysisData.competition.value)}`}
-                    style={{ width: `${progressCompetition}%` }}
+                    className={`h-3 rounded-full transition-all duration-1000 ease-out ${getScoreColor(analysisData.competition.value, false, true)}`}
+                    style={{
+                      width: `${progressCompetition < 10
+                          ? 10
+                          : progressCompetition <= 20
+                            ? 50
+                            : 100
+                        }%`
+                    }}
                   ></div>
+
                 </div>
                 <p className="text-xs text-gray-600">
                   {getScoreInterpretation(analysisData.competition.value, "competition")}
@@ -302,8 +360,19 @@ export default function ResultadoPage() {
               ← Nuevo análisis
             </button>
             <div className="flex gap-2 w-full sm:w-auto sm:ml-auto">
-              <button className="flex-1 sm:flex-none inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                📄 Descargar reporte
+              <button
+                onClick={downloadPDF}
+                disabled={isDownloading}
+                className="flex-1 sm:flex-none inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDownloading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700 mr-2"></div>
+                    Generando...
+                  </>
+                ) : (
+                  <>📄 Descargar reporte</>
+                )}
               </button>
               <button className="flex-1 sm:flex-none inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
                 📤 Compartir resultados

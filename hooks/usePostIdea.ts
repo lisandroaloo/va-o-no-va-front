@@ -21,7 +21,24 @@ interface EvaluationResult {
   budget: number
 }
 
+const handleAnalizarIdea = async ( requestData:RequestData  ) => {
+  const response = await fetch("http://localhost:8080/ideas/ia", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      latitude: requestData.latitude,
+      longitude: requestData.longitude,
+      businessType: requestData.businessType,
+      budget: requestData.budget,
+    }),
+  });
 
+  const data = await response.json();
+  console.log("Respuesta del análisis IA:", data);
+  return data;
+};
 const usePostIdea = () => {
   const [loading, setLoading] = useState(false)
 

@@ -25,7 +25,9 @@ export default function ResultadoPage() {
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isDownloading, setIsDownloading] = useState(false)
-
+  const [isAnalyzingWithAI, setIsAnalyzingWithAI] = useState(false);
+  const [aiAnalysisResult, setAiAnalysisResult] = useState<any | null>(null);
+  const [aiAnalysisError, setAiAnalysisError] = useState<string | null>(null);
 
   const [progressViability, setProgressViability] = useState(0)
   const [progressRisk, setProgressRisk] = useState(0)
@@ -60,9 +62,9 @@ export default function ResultadoPage() {
       setIsLoading(false)
 
       // Animar las barras de progreso
-      setTimeout(() => setProgressViability(data.viabilityScore), 500)
-      setTimeout(() => setProgressRisk(data.risk.value), 700)
-      setTimeout(() => setProgressCompetition(data.competition.value), 900)
+      setTimeout(() => setProgressViability(data.viabilityScore || 0), 500)
+      setTimeout(() => setProgressRisk(data.risk?.value || 0), 700)
+      setTimeout(() => setProgressCompetition(data.competition?.value || 0), 900)
     } catch (error) {
       console.error("Error loading analysis data:", error)
       sessionStorage.removeItem("analysisResult")
@@ -198,6 +200,49 @@ export default function ResultadoPage() {
     router.push("/formulario")
   }
 
+  const handleAdvancedAIAnalysis = async () => {
+    if (!analysisData) return;
+
+    setIsAnalyzingWithAI(true);
+    setAiAnalysisResult(null);
+    setAiAnalysisError(null);
+
+    try {
+      const requestPayload = {
+        latitude: analysisData.latitude,
+        longitude: analysisData.longitude,
+        businessType: analysisData.businessType,
+        budget: analysisData.budget,
+      };
+
+      const response = await fetch("http://localhost:8080/ideas/ia", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestPayload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "Error desconocido del servidor de IA" }));
+        throw new Error(errorData.message || `Error del servidor de IA: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("Respuesta del análisis IA avanzado:", data);
+      setAiAnalysisResult(data); // Store the result if you want to display it
+      // For now, just an alert. You can expand this to show data in the UI.
+      alert("Análisis con IA avanzado completado. Revisa la consola para ver los detalles.");
+
+    } catch (error: any) {
+      console.error("Error en el análisis con IA avanzado:", error);
+      setAiAnalysisError(error.message || "Ocurrió un error al contactar el servicio de IA.");
+      alert(`Error en el análisis con IA avanzado: ${error.message || "Ocurrió un error."}`);
+    } finally {
+      setIsAnalyzingWithAI(false);
+    }
+  };
+
   return (
     <PageLayout>
       <div className="flex items-center justify-center p-4 md:p-8">
@@ -234,16 +279,16 @@ export default function ResultadoPage() {
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">📈 Puntuación de Viabilidad</span>
-                  <span className="text-sm font-medium">{analysisData.viabilityScore}%</span>
+                  <span className="text-sm font-medium">{(analysisData.viabilityScore || 0)}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3">
                   <div
-                    className={`h-3 rounded-full transition-all duration-1000 ease-out ${getScoreColor(analysisData.viabilityScore)}`}
+                    className={`h-3 rounded-full transition-all duration-1000 ease-out ${getScoreColor((analysisData.viabilityScore || 0))}`}
                     style={{ width: `${progressViability}%` }}
                   ></div>
                 </div>
                 <p className="text-xs text-gray-600">
-                  {getScoreInterpretation(analysisData.viabilityScore, "viability")}
+                  {getScoreInterpretation((analysisData.viabilityScore || 0), "viability")}
                 </p>
               </div>
 
@@ -251,26 +296,26 @@ export default function ResultadoPage() {
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">⚠️ Puntuación de Riesgo</span>
-                  <span className="text-sm font-medium">{analysisData.risk.value}%</span>
+                  <span className="text-sm font-medium">{(analysisData.risk?.value || 0)}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3">
                   <div
-                    className={`h-3 rounded-full transition-all duration-1000 ease-out ${getScoreColor(analysisData.risk.value, true)}`}
+                    className={`h-3 rounded-full transition-all duration-1000 ease-out ${getScoreColor((analysisData.risk?.value || 0), true)}`}
                     style={{ width: `${progressRisk}%` }}
                   ></div>
                 </div>
-                <p className="text-xs text-gray-600">{getScoreInterpretation(analysisData.risk.value, "risk")}</p>
+                <p className="text-xs text-gray-600">{getScoreInterpretation((analysisData.risk?.value || 0), "risk")}</p>
               </div>
 
               {/* Competencia */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">🏢 Análisis de Competencia</span>
-                  <span className="text-sm font-medium">{analysisData.competition.value} </span>
+                  <span className="text-sm font-medium">{(analysisData.competition?.value || 0)} </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3">
                   <div
-                    className={`h-3 rounded-full transition-all duration-1000 ease-out ${getScoreColor(analysisData.competition.value, false, true)}`}
+                    className={`h-3 rounded-full transition-all duration-1000 ease-out ${getScoreColor((analysisData.competition?.value || 0), false, true)}`}
                     style={{
                       width: `${progressCompetition < 10
                           ? 10
@@ -283,13 +328,13 @@ export default function ResultadoPage() {
 
                 </div>
                 <p className="text-xs text-gray-600">
-                  {getScoreInterpretation(analysisData.competition.value, "competition")}
+                  {getScoreInterpretation((analysisData.competition?.value || 0), "competition")}
                 </p>
               </div>
             </div>
 
             {/* Recomendaciones */}
-            {analysisData.recommendations.length > 0 && (
+            {analysisData.recommendations && analysisData.recommendations.length > 0 && (
               <div className="space-y-3">
                 <h3 className="font-bold text-lg">🎯 Recomendaciones estratégicas</h3>
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -372,6 +417,20 @@ export default function ResultadoPage() {
                   </>
                 ) : (
                   <>📄 Descargar reporte</>
+                )}
+              </button>
+              <button 
+                onClick={handleAdvancedAIAnalysis}
+                disabled={isAnalyzingWithAI}
+                className="flex-1 sm:flex-none inline-flex items-center justify-center rounded-md border border-blue-500 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isAnalyzingWithAI ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700 mr-2"></div>
+                    Analizando IA...
+                  </>
+                ) : (
+                  <>🧠 Profundizar Análisis IA</>
                 )}
               </button>
               <button className="flex-1 sm:flex-none inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">

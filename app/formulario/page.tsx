@@ -2,11 +2,12 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { PageLayout } from "@/components/page-layout"
 import usePostIdea from "@/hooks/usePostIdea"
+import MapComponent from "@/components/map"
 
 
 export default function FormularioPage() {
@@ -18,12 +19,33 @@ export default function FormularioPage() {
     tipoComercio: "",
     presupuesto: "",
   })
+  const [markerPosition, setMarkerPosition] = useState<{ lat: number; lng: number } | null>(null);
+
   const { loading, postIdea } = usePostIdea(); // ✅ Correcto si devuelve un objeto
+
+  useEffect(() => {
+    const lat = Number.parseFloat(formData.latitud);
+    const lng = Number.parseFloat(formData.longitud);
+    if (!Number.isNaN(lat) && !Number.isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+      setMarkerPosition({ lat, lng });
+    } else {
+      setMarkerPosition(null);
+    }
+  }, [formData.latitud, formData.longitud]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
+
+  const handleMapPositionChange = (newPosition: { lat: number; lng: number }) => {
+    setMarkerPosition(newPosition);
+    setFormData((prev) => ({
+      ...prev,
+      latitud: newPosition.lat.toFixed(6),
+      longitud: newPosition.lng.toFixed(6),
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -142,17 +164,16 @@ export default function FormularioPage() {
                   </div>
                 </div>
 
-                {/* Ayuda para obtener coordenadas */}
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-                  <p className="text-sm text-blue-800">
-                    💡 <strong>¿Cómo obtener coordenadas?</strong>
-                  </p>
-                  <ul className="text-xs text-blue-700 mt-1 space-y-1">
-                    <li>• Abre Google Maps y busca tu ubicación</li>
-                    <li>• Haz clic derecho en el punto exacto</li>
-                    <li>• Copia las coordenadas que aparecen en el menú</li>
-                    <li>• Pega los números en los campos de arriba</li>
-                  </ul>
+                {/* MAP COMPONENT INTEGRATION */}
+                <div className="mt-4">
+                  <label className="text-sm font-medium">O selecciona en el mapa:</label>
+                  <div className="mt-2 rounded-md border border-gray-300 overflow-hidden">
+                    <MapComponent
+                      position={markerPosition}
+                      onPositionChange={handleMapPositionChange}
+                      mapHeight="300px"
+                    />
+                  </div>
                 </div>
               </div>
 

@@ -252,7 +252,7 @@ export default function ResultadoPage() {
             <p className="text-gray-600 mt-2">
               Análisis de viabilidad para un{" "}
               {{
-                "convenience-store": "kiosco",
+                "convenience_store": "kiosco",
                 "restaurant": "restaurante",
                 "cafe": "café"
               }[analysisData.businessType] || analysisData.businessType}{" "}
@@ -338,10 +338,10 @@ export default function ResultadoPage() {
               <div className="space-y-3">
                 <h3 className="font-bold text-lg">🎯 Recomendaciones estratégicas</h3>
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <ul className="space-y-2">
+                  <ul className="space-y-2 ">
                     {analysisData.recommendations.map((rec, index) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <span className="mt-1 text-blue-600">•</span>
+                      <li key={index} className="flex items-center gap-2">
+                        <span className="mt-1  text-blue-600">•</span>
                         <span className="text-blue-800">{rec}</span>
                       </li>
                     ))}
@@ -370,7 +370,11 @@ export default function ResultadoPage() {
                     <span className="text-lg">{getComercioEmoji()}</span>
                     <span className="font-medium">Tipo de negocio</span>
                   </div>
-                  <p className="text-sm text-gray-600">Categoría: {analysisData.businessType}</p>
+                  <p className="text-sm text-gray-600">Categoría: {{
+                "convenience_store": "Kiosco",
+                "restaurant": "Restaurante",
+                "cafe": "Café"
+              }[analysisData.businessType] } </p>
                   <p className="text-sm text-gray-600">Análisis específico del sector y requerimientos.</p>
                 </div>
 

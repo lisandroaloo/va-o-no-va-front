@@ -193,7 +193,7 @@ export default function FormularioPage() {
                   <option value="">Selecciona el tipo de comercio</option>
                   <option value="cafe">☕ Café</option>
                   <option value="restaurant">🍽️ Restaurante</option>
-                  <option value="convenience-store">🏪 Kiosco</option>
+                  <option value="convenience_store">🏪 Kiosco</option>
                 </select>
               </div>
 

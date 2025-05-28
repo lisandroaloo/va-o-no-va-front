@@ -38,6 +38,16 @@ export async function POST(request: NextRequest) {
             return emojis[businessType] || "🏪"
         }
 
+        // Función para obtener emoji del tipo de comercio
+        const getComercio = (businessType: string) => {
+            const emojis: Record<string, string> = {
+                convenience_store: "Kiosco",
+                restaurant: "Restaurante",
+                cafe: "Café"
+            }
+            return emojis[businessType] || "🏪"
+        }
+
         // Determinar estado general
         const getOverallStatus = (viabilityScore: number) => {
             if (viabilityScore >= 70) return { message: "Proyecto recomendado", icon: "✅" }
@@ -287,7 +297,7 @@ export async function POST(request: NextRequest) {
             <div class="header">
                 <h1>📈 Reporte de Viabilidad Comercial</h1>
                 <div class="subtitle">
-                    Análisis para ${analysisData.businessType} en coordenadas ${analysisData.latitude.toFixed(4)}, ${analysisData.longitude.toFixed(4)}
+                    Análisis para un ${getComercio(analysisData.businessType)} en las coordenadas ${analysisData.latitude.toFixed(4)}, ${analysisData.longitude.toFixed(4)}
                 </div>
                 <div class="date">Generado el ${currentDate}</div>
             </div>
@@ -342,13 +352,13 @@ export async function POST(request: NextRequest) {
                         <div
                             class="metric-fill 
                             ${analysisData.competition.value >= 20 ? "red" :
-                                        analysisData.competition.value >= 10 ? "yellow" : "green"}"
+                analysisData.competition.value >= 10 ? "yellow" : "green"}"
                             style="width: ${analysisData.competition.value < 10
-                                        ? 10
-                                        : analysisData.competition.value <= 20
-                                            ? 50
-                                            : 100
-                                    }%">
+                ? 10
+                : analysisData.competition.value <= 20
+                    ? 50
+                    : 100
+            }%">
                         </div>
                         </div>
                         <div class="metric-interpretation">
@@ -394,7 +404,7 @@ export async function POST(request: NextRequest) {
                             <span class="detail-title">Tipo de Negocio</span>
                         </div>
                         <div class="detail-content">
-                            <strong>Categoría:</strong> ${analysisData.businessType}<br>
+                            <strong>Categoría:</strong> ${getComercio(analysisData.businessType)}<br>
                             Análisis específico del sector y requerimientos.
                         </div>
                     </div>

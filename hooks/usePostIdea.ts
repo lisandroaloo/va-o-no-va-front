@@ -9,11 +9,19 @@ interface RequestData {
   budget: number
 }
 
+export interface CompetitionScores{
+  oneStar: number
+  twoStar: number
+  threeStar: number
+  fourStar: number
+  fiveStar: number
+}
+
  
 interface EvaluationResult {
   risk: IValue
   viabilityScore: number
-  competition: IValue
+  competition: CompetitionScores
   recommendations: string[]
   latitude: number
   longitude: number
@@ -39,6 +47,7 @@ const handleAnalizarIdea = async ( requestData:RequestData  ) => {
   console.log("Respuesta del análisis IA:", data);
   return data;
 };
+
 const usePostIdea = () => {
   const [loading, setLoading] = useState(false)
 

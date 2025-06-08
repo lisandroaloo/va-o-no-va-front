@@ -3,11 +3,14 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { PageLayout } from "@/components/page-layout"
+import { CompetitionScores } from "@/hooks/usePostIdea"
+import { Tooltip } from "@/components/tooltip"
+import { RatingChart } from "@/components/rating-chart"
 
 interface AnalysisData {
   risk: IValue
   viabilityScore: number
-  competition: IValue
+  competition: CompetitionScores
   recommendations: string[]
   latitude: number
   longitude: number
@@ -19,15 +22,22 @@ export interface IValue {
   value: number
 }
 
+interface RatingData {
+  stars: number
+  count: number
+}
+
 
 export default function ResultadoPage() {
   const router = useRouter()
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isDownloading, setIsDownloading] = useState(false)
+  const [showRecommendations, setShowRecommendations] = useState(false)
   const [isAnalyzingWithAI, setIsAnalyzingWithAI] = useState(false);
   const [aiAnalysisResult, setAiAnalysisResult] = useState<any | null>(null);
   const [aiAnalysisError, setAiAnalysisError] = useState<string | null>(null);
+  
 
   const [progressViability, setProgressViability] = useState(0)
   const [progressRisk, setProgressRisk] = useState(0)
@@ -37,8 +47,6 @@ export default function ResultadoPage() {
     // Intentar cargar los datos del sessionStorage
     try {
       const storedData = sessionStorage.getItem("analysisResult")
-
-
 
       if (!storedData) {
         // No hay datos, redirigir al formulario
@@ -64,7 +72,6 @@ export default function ResultadoPage() {
       // Animar las barras de progreso
       setTimeout(() => setProgressViability(data.viabilityScore || 0), 500)
       setTimeout(() => setProgressRisk(data.risk?.value || 0), 700)
-      setTimeout(() => setProgressCompetition(data.competition?.value || 0), 900)
     } catch (error) {
       console.error("Error loading analysis data:", error)
       sessionStorage.removeItem("analysisResult")
@@ -194,11 +201,45 @@ export default function ResultadoPage() {
     return emojis[analysisData.businessType as keyof typeof emojis] || "🏪"
   }
 
+
   const handleNewAnalysis = () => {
     // Limpiar datos y redirigir
     sessionStorage.removeItem("analysisResult")
     router.push("/formulario")
   }
+
+  
+  // Tooltips explicativos concisos
+  const tooltips = {
+    viability:
+      "Evalúa la probabilidad de éxito basada en densidad poblacional, poder adquisitivo, accesibilidad y flujo peatonal.",
+    risk: "Identifica obstáculos como regulaciones locales, competencia directa y factores externos que podrían afectar tu negocio.",
+    competition:
+      "Analiza la cantidad y calidad de negocios similares en un radio de 500m, incluyendo sus calificaciones promedio.",
+  }
+
+  const totalNearbyBusinesses = analysisData.competition
+    ? analysisData.competition.oneStar +
+      analysisData.competition.twoStar +
+      analysisData.competition.threeStar +
+      analysisData.competition.fourStar +
+      analysisData.competition.fiveStar
+    : 0
+
+  
+  const convertCompetitionToRatingData = (competition: CompetitionScores): RatingData[] => {
+    return [
+      { stars: 1, count: competition.oneStar },
+      { stars: 2, count: competition.twoStar },
+      { stars: 3, count: competition.threeStar },
+      { stars: 4, count: competition.fourStar },
+      { stars: 5, count: competition.fiveStar },
+    ]
+  }
+
+
+  // Convertir datos de competencia para el gráfico
+  const ratingData = analysisData.competition ? convertCompetitionToRatingData(analysisData.competition) : []
 
   const handleAdvancedAIAnalysis = async () => {
     if (!analysisData) return;
@@ -243,20 +284,14 @@ export default function ResultadoPage() {
     }
   };
 
-  return (
+ return (
     <PageLayout>
       <div className="flex items-center justify-center p-4 md:p-8">
         <div className="w-full max-w-4xl bg-white rounded-lg border shadow-sm">
           <div className="p-6 border-b">
             <h2 className="text-2xl font-bold">Resultado del análisis</h2>
             <p className="text-gray-600 mt-2">
-              Análisis de viabilidad para un{" "}
-              {{
-                "convenience_store": "kiosco",
-                "restaurant": "restaurante",
-                "cafe": "café"
-              }[analysisData.businessType] || analysisData.businessType}{" "}
-              en las coordenadas {analysisData.latitude.toFixed(4)}, {analysisData.longitude.toFixed(4)} con un presupuesto de $
+              Análisis de viabilidad con un presupuesto de $
               {analysisData.budget.toLocaleString()} USD
             </p>
           </div>
@@ -267,138 +302,152 @@ export default function ResultadoPage() {
               <span className="text-4xl">{overallStatus.icon}</span>
               <div>
                 <h3 className={`font-bold text-xl ${overallStatus.color}`}>{overallStatus.message}</h3>
-                <p className="text-gray-600">
-                  Basado en el análisis de viabilidad, riesgo y competencia de tu proyecto empresarial.
-                </p>
               </div>
             </div>
 
-            {/* Métricas principales */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Viabilidad */}
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">📈 Puntuación de Viabilidad</span>
-                  <span className="text-sm font-medium">{(analysisData.viabilityScore || 0)}%</span>
+            {/* Métricas principales separadas por secciones */}
+            <div className="space-y-8">
+              {/* Sección de Viabilidad */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                      <span className="text-2xl">📈</span>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">Puntuación de Viabilidad</h3>
+                      <Tooltip content={tooltips.viability} position="bottom">
+                        <p className="text-sm text-gray-600 cursor-help hover:text-gray-800">
+                          Probabilidad de éxito del negocio en esta ubicación
+                        </p>
+                      </Tooltip>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-3xl font-bold text-gray-900">{analysisData.viabilityScore}%</div>
+                    <div className="text-sm text-gray-600">
+                      {getScoreInterpretation(analysisData.viabilityScore, "viability")}
+                    </div>
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
+                <div className="w-full bg-gray-200 rounded-full h-4">
                   <div
-                    className={`h-3 rounded-full transition-all duration-1000 ease-out ${getScoreColor((analysisData.viabilityScore || 0))}`}
+                    className={`h-4 rounded-full transition-all duration-1000 ease-out ${getScoreColor(analysisData.viabilityScore)}`}
                     style={{ width: `${progressViability}%` }}
                   ></div>
                 </div>
-                <p className="text-xs text-gray-600">
-                  {getScoreInterpretation((analysisData.viabilityScore || 0), "viability")}
-                </p>
               </div>
 
-              {/* Riesgo */}
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">⚠️ Puntuación de Riesgo</span>
-                  <span className="text-sm font-medium">{(analysisData.risk?.value || 0)}%</span>
+              {/* Sección de Riesgo */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                      <span className="text-2xl">⚠️</span>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">Puntuación de Riesgo</h3>
+                      <Tooltip content={tooltips.risk} position="bottom">
+                        <p className="text-sm text-gray-600 cursor-help hover:text-gray-800">
+                          Factores que podrían afectar negativamente tu negocio
+                        </p>
+                      </Tooltip>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-3xl font-bold text-gray-900">{analysisData.risk.value}%</div>
+                    <div className="text-sm text-gray-600">
+                      {getScoreInterpretation(analysisData.risk.value, "risk")}
+                    </div>
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
+                <div className="w-full bg-gray-200 rounded-full h-4">
                   <div
-                    className={`h-3 rounded-full transition-all duration-1000 ease-out ${getScoreColor((analysisData.risk?.value || 0), true)}`}
+                    className={`h-4 rounded-full transition-all duration-1000 ease-out ${getScoreColor(analysisData.risk.value, true)}`}
                     style={{ width: `${progressRisk}%` }}
                   ></div>
                 </div>
-                <p className="text-xs text-gray-600">{getScoreInterpretation((analysisData.risk?.value || 0), "risk")}</p>
               </div>
 
-              {/* Competencia */}
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">🏢 Análisis de Competencia</span>
-                  <span className="text-sm font-medium">{(analysisData.competition?.value || 0)} </span>
+              {/* Sección de Competencia unificada con gráfico */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                      <span className="text-2xl">🏢</span>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">Análisis de Competencia</h3>
+                      <Tooltip content={tooltips.competition} position="bottom">
+                        <p className="text-sm text-gray-600 cursor-help hover:text-gray-800">
+                          Comercios similares encontrados en un radio de 500m
+                        </p>
+                      </Tooltip>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-3xl font-bold text-gray-900">{totalNearbyBusinesses}</div>
+                    <div className="text-sm text-gray-600">
+                      {totalNearbyBusinesses === 1 ? "comercio similar" : "comercios similares"}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {getScoreInterpretation(totalNearbyBusinesses,"competition")}
+                    </div>
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div
-                    className={`h-3 rounded-full transition-all duration-1000 ease-out ${getScoreColor((analysisData.competition?.value || 0), false, true)}`}
-                    style={{
-                      width: `${progressCompetition < 10
-                          ? 10
-                          : progressCompetition <= 20
-                            ? 50
-                            : 100
-                        }%`
-                    }}
-                  ></div>
 
-                </div>
-                <p className="text-xs text-gray-600">
-                  {getScoreInterpretation((analysisData.competition?.value || 0), "competition")}
-                </p>
+                {/* Gráfico de comercios cercanos integrado */}
+                {totalNearbyBusinesses > 0 ? (
+                  <div className="mt-4">
+                    <RatingChart
+                      data={ratingData}
+                      title={`Distribución de calificaciones de ${analysisData.businessType}s cercanos`}
+                    />
+                  </div>
+                ) : (
+                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-600 text-lg">✨</span>
+                      <div>
+                        <p className="text-green-800 font-medium">¡Excelente oportunidad!</p>
+                        <p className="text-green-700 text-sm">
+                          No se encontraron comercios similares en la zona, lo que representa una ventaja competitiva
+                          significativa.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Recomendaciones */}
-            {analysisData.recommendations && analysisData.recommendations.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="font-bold text-lg">🎯 Recomendaciones estratégicas</h3>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <ul className="space-y-2 ">
-                    {analysisData.recommendations.map((rec, index) => (
-                      <li key={index} className="flex items-center gap-2">
-                        <span className="mt-1  text-blue-600">•</span>
-                        <span className="text-blue-800">{rec}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+            {/* Botón para mostrar/ocultar recomendaciones */}
+            <div className="border-t pt-4">
+              <button
+                onClick={() => setShowRecommendations(!showRecommendations)}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                <span className={`transform transition-transform ${showRecommendations ? "rotate-90" : ""}`}>▶</span>
+                <span className="text-sm font-medium">
+                  {showRecommendations ? "Ocultar recomendaciones" : "Ver recomendaciones estratégicas"}
+                </span>
+              </button>
+            </div>
+
+            {/* Recomendaciones (colapsables) */}
+            {showRecommendations && analysisData.recommendations.length > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="font-bold text-lg text-blue-900 mb-3">🎯 Recomendaciones estratégicas</h3>
+                <ul className="space-y-2">
+                  {analysisData.recommendations.map((rec, index) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <span className="mt-1 text-blue-600">•</span>
+                      <span className="text-blue-800">{rec}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
-
-            {/* Detalles del análisis */}
-            <div className="space-y-3">
-              <h3 className="font-bold text-lg">📊 Detalles del análisis</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-lg">📍</span>
-                    <span className="font-medium">Ubicación</span>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    Coordenadas: {analysisData.latitude.toFixed(4)}, {analysisData.longitude.toFixed(4)}
-                  </p>
-                  <p className="text-sm text-gray-600">Análisis geográfico y demográfico de la zona.</p>
-                </div>
-
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-lg">{getComercioEmoji()}</span>
-                    <span className="font-medium">Tipo de negocio</span>
-                  </div>
-                  <p className="text-sm text-gray-600">Categoría: {{
-                "convenience_store": "Kiosco",
-                "restaurant": "Restaurante",
-                "cafe": "Café"
-              }[analysisData.businessType] } </p>
-                  <p className="text-sm text-gray-600">Análisis específico del sector y requerimientos.</p>
-                </div>
-
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-lg">💰</span>
-                    <span className="font-medium">Presupuesto</span>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    Inversión inicial: ${analysisData.budget.toLocaleString()} USD
-                  </p>
-                  <p className="text-sm text-gray-600">Evaluación de suficiencia y optimización de recursos.</p>
-                </div>
-
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-lg">🎯</span>
-                    <span className="font-medium">Metodología</span>
-                  </div>
-                  <p className="text-sm text-gray-600">Análisis multifactorial</p>
-                  <p className="text-sm text-gray-600">Evaluación de mercado, competencia y factores de riesgo.</p>
-                </div>
-              </div>
-            </div>
           </div>
 
           <div className="p-6 border-t flex flex-col sm:flex-row gap-4">
@@ -421,20 +470,6 @@ export default function ResultadoPage() {
                   </>
                 ) : (
                   <>📄 Descargar reporte</>
-                )}
-              </button>
-              <button 
-                onClick={handleAdvancedAIAnalysis}
-                disabled={isAnalyzingWithAI}
-                className="flex-1 sm:flex-none inline-flex items-center justify-center rounded-md border border-blue-500 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isAnalyzingWithAI ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700 mr-2"></div>
-                    Analizando IA...
-                  </>
-                ) : (
-                  <>🧠 Profundizar Análisis IA</>
                 )}
               </button>
               <button className="flex-1 sm:flex-none inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">

@@ -112,12 +112,7 @@ export function RatingChart({ data, title = "Distribución de calificaciones" }:
       </div>
 
       {/* Leyenda */}
-      <div className="mt-4 pt-3 border-t border-gray-200">
-        <div className="flex items-center justify-between text-xs text-gray-500">
-          <span>Peor calificación</span>
-          <span>Mejor calificación</span>
-        </div>
-      </div>
+     
     </div>
   )
 }

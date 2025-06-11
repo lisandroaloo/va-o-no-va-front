@@ -7,7 +7,7 @@ import { CompetitionScores } from "@/hooks/usePostIdea"
 import { Tooltip } from "@/components/tooltip"
 import { RatingChart } from "@/components/rating-chart"
 
-interface AnalysisData {
+export interface AnalysisData {
   risk: IValue
   viabilityScore: number
   competition: CompetitionScores
@@ -180,6 +180,14 @@ export default function ResultadoPage() {
     return ""
   }
 
+  
+    const getName = (name: String) => {
+      if (name === "convenience_store") return "kiosco"
+      if (name === "cafe") return "café"
+      if (name === "restaurant") return "restaurante"
+    }
+
+
   // Determinar el estado general basado en viability_score
   const getOverallStatus = () => {
     if (analysisData.viabilityScore >= 70)
@@ -291,7 +299,7 @@ export default function ResultadoPage() {
           <div className="p-6 border-b">
             <h2 className="text-2xl font-bold">Resultado del análisis</h2>
             <p className="text-gray-600 mt-2">
-              Análisis de viabilidad con un presupuesto de $
+              Análisis de viabilidad de un {getName(analysisData.businessType)} con un presupuesto de $
               {analysisData.budget.toLocaleString()} USD
             </p>
           </div>

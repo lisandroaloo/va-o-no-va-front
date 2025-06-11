@@ -111,8 +111,7 @@ export function RatingChart({ data, title = "Distribución de calificaciones" }:
         })}
       </div>
 
-      {/* Leyenda */}
-     
+ 
     </div>
   )
 }

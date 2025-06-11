@@ -199,7 +199,7 @@ export default function ResultadoPage() {
     sessionStorage.removeItem("analysisResult")
     router.push("/formulario")
   }
-
+/*
   const handleAdvancedAIAnalysis = async () => {
     if (!analysisData) return;
 
@@ -241,7 +241,7 @@ export default function ResultadoPage() {
     } finally {
       setIsAnalyzingWithAI(false);
     }
-  };
+  };*/
 
   return (
     <PageLayout>
@@ -252,7 +252,7 @@ export default function ResultadoPage() {
             <p className="text-gray-600 mt-2">
               Análisis de viabilidad para un{" "}
               {{
-                "convenience_store": "kiosco",
+                "convenience-store": "kiosco",
                 "restaurant": "restaurante",
                 "cafe": "café"
               }[analysisData.businessType] || analysisData.businessType}{" "}
@@ -338,10 +338,10 @@ export default function ResultadoPage() {
               <div className="space-y-3">
                 <h3 className="font-bold text-lg">🎯 Recomendaciones estratégicas</h3>
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <ul className="space-y-2 ">
+                  <ul className="space-y-2">
                     {analysisData.recommendations.map((rec, index) => (
-                      <li key={index} className="flex items-center gap-2">
-                        <span className="mt-1  text-blue-600">•</span>
+                      <li key={index} className="flex items-start gap-2">
+                        <span className="mt-1 text-blue-600">•</span>
                         <span className="text-blue-800">{rec}</span>
                       </li>
                     ))}
@@ -370,11 +370,7 @@ export default function ResultadoPage() {
                     <span className="text-lg">{getComercioEmoji()}</span>
                     <span className="font-medium">Tipo de negocio</span>
                   </div>
-                  <p className="text-sm text-gray-600">Categoría: {{
-                "convenience_store": "Kiosco",
-                "restaurant": "Restaurante",
-                "cafe": "Café"
-              }[analysisData.businessType] } </p>
+                  <p className="text-sm text-gray-600">Categoría: {analysisData.businessType}</p>
                   <p className="text-sm text-gray-600">Análisis específico del sector y requerimientos.</p>
                 </div>
 
@@ -423,6 +419,7 @@ export default function ResultadoPage() {
                   <>📄 Descargar reporte</>
                 )}
               </button>
+              {/*
               <button 
                 onClick={handleAdvancedAIAnalysis}
                 disabled={isAnalyzingWithAI}
@@ -437,6 +434,7 @@ export default function ResultadoPage() {
                   <>🧠 Profundizar Análisis IA</>
                 )}
               </button>
+              */}
               <button className="flex-1 sm:flex-none inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
                 📤 Compartir resultados
               </button>

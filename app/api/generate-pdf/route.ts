@@ -455,7 +455,7 @@ export async function POST(request: NextRequest) {
             <div class="header">
                 <h1>📈 Reporte de Viabilidad Comercial</h1>
                 <div class="subtitle">
-                    Análisis de viabilidad para un ${getName(analysisData.businessType)} ${getComercioEmoji(analysisData.businessType)}
+                    Análisis de viabilidad para un ${getName(analysisData.businessType)} ${getComercioEmoji(analysisData.businessType)} en ${analysisData.address.split(",")[0]}
                 </div>
                 <div class="date">Generado el ${currentDate}</div>
             </div>

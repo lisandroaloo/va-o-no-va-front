@@ -16,6 +16,7 @@ export interface AnalysisData {
   longitude: number
   businessType: string
   budget: number
+  address: String
   timestamp: number
 }
 export interface IValue {
@@ -300,7 +301,7 @@ export default function ResultadoPage() {
             <h2 className="text-2xl font-bold">Resultado del análisis</h2>
             <p className="text-gray-600 mt-2">
               Análisis de viabilidad de un {getName(analysisData.businessType)} con un presupuesto de $
-              {analysisData.budget.toLocaleString()} USD
+              {analysisData.budget.toLocaleString()} USD en {analysisData.address.split(",")[0]}
             </p>
           </div>
 
@@ -409,7 +410,7 @@ export default function ResultadoPage() {
                   <div className="mt-4">
                     <RatingChart
                       data={ratingData}
-                      title={`Distribución de calificaciones de ${analysisData.businessType}s cercanos`}
+                      title={`Distribución de calificaciones de ${getName(analysisData.businessType)}s cercanos`}
                     />
                   </div>
                 ) : (
@@ -434,9 +435,9 @@ export default function ResultadoPage() {
               <div className="space-y-3">
                 <h3 className="font-bold text-lg">🎯 Recomendaciones estratégicas</h3>
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <ul className="space-y-2 ">
+                  <ul className="space-y-2  ">
                     {analysisData.recommendations.map((rec, index) => (
-                      <li key={index} className="flex items-center gap-2">
+                      <li key={index} className="flex gap-2">
                         <span className="mt-1  text-blue-600">•</span>
                         <span className="text-blue-800">{rec}</span>
                       </li>
@@ -446,55 +447,7 @@ export default function ResultadoPage() {
               </div>
             )}
 
-            {/* Detalles del análisis */}
-            <div className="space-y-3">
-              <h3 className="font-bold text-lg">📊 Detalles del análisis</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-lg">📍</span>
-                    <span className="font-medium">Ubicación</span>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    Coordenadas: {analysisData.latitude.toFixed(4)}, {analysisData.longitude.toFixed(4)}
-                  </p>
-                  <p className="text-sm text-gray-600">Análisis geográfico y demográfico de la zona.</p>
-                </div>
-
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-lg">{getComercioEmoji()}</span>
-                    <span className="font-medium">Tipo de negocio</span>
-                  </div>
-                  <p className="text-sm text-gray-600">Categoría: {{
-                "convenience_store": "Kiosco",
-                "restaurant": "Restaurante",
-                "cafe": "Café"
-              }[analysisData.businessType] } </p>
-                  <p className="text-sm text-gray-600">Análisis específico del sector y requerimientos.</p>
-                </div>
-
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-lg">💰</span>
-                    <span className="font-medium">Presupuesto</span>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    Inversión inicial: ${analysisData.budget.toLocaleString()} USD
-                  </p>
-                  <p className="text-sm text-gray-600">Evaluación de suficiencia y optimización de recursos.</p>
-                </div>
-
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-lg">🎯</span>
-                    <span className="font-medium">Metodología</span>
-                  </div>
-                  <p className="text-sm text-gray-600">Análisis multifactorial</p>
-                  <p className="text-sm text-gray-600">Evaluación de mercado, competencia y factores de riesgo.</p>
-                </div>
-              </div>
-            </div>
+            
           </div>
 
           <div className="p-6 border-t flex flex-col sm:flex-row gap-4">

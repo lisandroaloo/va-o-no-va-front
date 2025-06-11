@@ -174,6 +174,7 @@ export default function FormularioPage() {
         longitude: lng,
         businessType: formData.tipoComercio,
         budget: Number.parseInt(formData.presupuesto),
+        address: formData.direccion,
         // Timestamp para validar que no sea muy viejo
         timestamp: Date.now(),
       }

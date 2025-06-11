@@ -8,54 +8,137 @@ import { useRouter } from "next/navigation"
 import { PageLayout } from "@/components/page-layout"
 import usePostIdea from "@/hooks/usePostIdea"
 import MapComponent from "@/components/map"
+import { AddressAutocomplete } from "@/components/address-autocomplete"
+import { GoogleMapsWrapper } from "@/components/google-maps-wrapper"
 
 
 export default function FormularioPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
-    latitud: "",
-    longitud: "",
+    direccion: "",
     tipoComercio: "",
     presupuesto: "",
   })
+  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null)
   const [markerPosition, setMarkerPosition] = useState<{ lat: number; lng: number } | null>(null);
 
   const { loading, postIdea } = usePostIdea(); // ✅ Correcto si devuelve un objeto
 
   useEffect(() => {
-    const lat = Number.parseFloat(formData.latitud);
-    const lng = Number.parseFloat(formData.longitud);
-    if (!Number.isNaN(lat) && !Number.isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-      setMarkerPosition({ lat, lng });
+    if (coordinates) {
+      setMarkerPosition(coordinates);
     } else {
       setMarkerPosition(null);
     }
-  }, [formData.latitud, formData.longitud]);
+  }, [coordinates]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleMapPositionChange = (newPosition: { lat: number; lng: number }) => {
-    setMarkerPosition(newPosition);
-    setFormData((prev) => ({
-      ...prev,
-      latitud: newPosition.lat.toFixed(6),
-      longitud: newPosition.lng.toFixed(6),
-    }));
-  };
+  // Función para geocoding (dirección -> coordenadas)
+  const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number } | null> => {
+    try {
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+      if (!apiKey) {
+        console.error("Google Maps API key no configurada")
+        return null
+      }
+
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`
+      )
+      
+      const data = await response.json()
+      
+      if (data.status === 'OK' && data.results && data.results.length > 0) {
+        const location = data.results[0].geometry.location
+        return { lat: location.lat, lng: location.lng }
+      }
+      
+      return null
+    } catch (error) {
+      console.error("Error en geocoding:", error)
+      return null
+    }
+  }
+
+  // Función para reverse geocoding (coordenadas -> dirección)
+  const reverseGeocode = async (lat: number, lng: number): Promise<string | null> => {
+    try {
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+      if (!apiKey) return null
+
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`
+      )
+      
+      const data = await response.json()
+      
+      if (data.status === 'OK' && data.results && data.results.length > 0) {
+        return data.results[0].formatted_address
+      }
+      
+      return null
+    } catch (error) {
+      console.error("Error en reverse geocoding:", error)
+      return null
+    }
+  }
+
+  // Manejar cambios en el campo de dirección
+  const handleAddressChange = (address: string) => {
+    setFormData((prev) => ({ ...prev, direccion: address }))
+  }
+
+  // Manejar coordenadas obtenidas del autocomplete
+  const handleAddressCoordinates = (newCoordinates: { lat: number; lng: number }) => {
+    setCoordinates(newCoordinates)
+  }
+
+  // Manejar clics en el mapa
+  const handleMapPositionChange = async (newPosition: { lat: number; lng: number }) => {
+    setCoordinates(newPosition)
+    setMarkerPosition(newPosition)
+    
+    // Obtener la dirección correspondiente a las coordenadas
+    const address = await reverseGeocode(newPosition.lat, newPosition.lng)
+    if (address) {
+      setFormData((prev) => ({ ...prev, direccion: address }))
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
-      // Validar que las coordenadas estén en rangos válidos
-      const lat = Number.parseFloat(formData.latitud)
-      const lng = Number.parseFloat(formData.longitud)
+      let lat: number
+      let lng: number
 
+      // Si tenemos coordenadas, usarlas directamente
+      if (coordinates) {
+        lat = coordinates.lat
+        lng = coordinates.lng
+      } else if (formData.direccion.trim()) {
+        // Si solo tenemos dirección, geocodificarla
+        const coords = await geocodeAddress(formData.direccion)
+        if (!coords) {
+          alert("No se pudo obtener las coordenadas de la dirección proporcionada")
+          setIsLoading(false)
+          return
+        }
+        lat = coords.lat
+        lng = coords.lng
+      } else {
+        alert("Por favor, ingresa una dirección o selecciona una ubicación en el mapa")
+        setIsLoading(false)
+        return
+      }
+
+      // Validar que las coordenadas estén en rangos válidos
       if (lat < -90 || lat > 90) {
         alert("La latitud debe estar entre -90 y 90")
         setIsLoading(false)
@@ -114,8 +197,7 @@ export default function FormularioPage() {
           <div className="p-6 border-b">
             <h2 className="text-2xl font-bold">Análisis de viabilidad comercial</h2>
             <p className="text-gray-600 mt-2">
-              Ingresa las coordenadas de ubicación, tipo de comercio y presupuesto para evaluar la viabilidad de tu
-              negocio.
+              Ingresa la dirección de tu negocio o selecciona una ubicación en el mapa para evaluar su viabilidad comercial.
             </p>
           </div>
           <form onSubmit={handleSubmit}>
@@ -123,58 +205,39 @@ export default function FormularioPage() {
               <div className="space-y-4">
                 <label className="text-sm font-medium">Ubicación del negocio</label>
 
-                {/* Campos de coordenadas */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <GoogleMapsWrapper>
+                  {/* Campo de dirección con autocomplete */}
                   <div className="space-y-2">
-                    <label htmlFor="latitud" className="text-sm font-medium">
-                      Latitud
+                    <label htmlFor="direccion" className="text-sm font-medium">
+                      Dirección
                     </label>
-                    <input
-                      id="latitud"
-                      name="latitud"
-                      type="number"
-                      step="any"
-                      placeholder="Ej: -34.6037"
-                      value={formData.latitud}
-                      onChange={handleChange}
-                      required
+                    <AddressAutocomplete
+                      value={formData.direccion}
+                      onChange={handleAddressChange}
+                      onCoordinatesChange={handleAddressCoordinates}
                       disabled={isLoading}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      placeholder="Ej: Av. Corrientes 1000, CABA, Argentina"
                     />
-                    <p className="text-xs text-gray-500">Rango válido: -90 a 90</p>
+                    <p className="text-xs text-gray-500">
+                      Escribe y selecciona la dirección de tu negocio desde las sugerencias
+                    </p>
                   </div>
 
-                  <div className="space-y-2">
-                    <label htmlFor="longitud" className="text-sm font-medium">
-                      Longitud
-                    </label>
-                    <input
-                      id="longitud"
-                      name="longitud"
-                      type="number"
-                      step="any"
-                      placeholder="Ej: -58.3816"
-                      value={formData.longitud}
-                      onChange={handleChange}
-                      required
-                      disabled={isLoading}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    />
-                    <p className="text-xs text-gray-500">Rango válido: -180 a 180</p>
+                  {/* MAP COMPONENT INTEGRATION */}
+                  <div className="mt-4">
+                    <label className="text-sm font-medium">O selecciona directamente en el mapa:</label>
+                    <div className="mt-2 rounded-md border border-gray-300 overflow-hidden">
+                      <MapComponent
+                        position={markerPosition}
+                        onPositionChange={handleMapPositionChange}
+                        mapHeight="300px"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Haz clic en el mapa para seleccionar una ubicación. La dirección se completará automáticamente.
+                    </p>
                   </div>
-                </div>
-
-                {/* MAP COMPONENT INTEGRATION */}
-                <div className="mt-4">
-                  <label className="text-sm font-medium">O selecciona en el mapa:</label>
-                  <div className="mt-2 rounded-md border border-gray-300 overflow-hidden">
-                    <MapComponent
-                      position={markerPosition}
-                      onPositionChange={handleMapPositionChange}
-                      mapHeight="300px"
-                    />
-                  </div>
-                </div>
+                </GoogleMapsWrapper>
               </div>
 
               <div className="space-y-2">

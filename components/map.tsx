@@ -1,4 +1,4 @@
-import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
+import { GoogleMap, Marker } from '@react-google-maps/api';
 import { useCallback } from 'react';
 
 const defaultContainerStyle = {
@@ -59,22 +59,20 @@ const MapComponent = ({
   const containerStyle = { ...defaultContainerStyle, height: mapHeight };
 
   return (
-    <LoadScript googleMapsApiKey={apiKey}>
-      <GoogleMap
-        mapContainerStyle={containerStyle}
-        center={currentCenter}
-        zoom={currentZoom}
-        onClick={handleMapClick}
-      >
-        {position && (
-          <Marker
-            position={position}
-            draggable={true}
-            onDragEnd={handleMarkerDragEnd}
-          />
-        )}
-      </GoogleMap>
-    </LoadScript>
+    <GoogleMap
+      mapContainerStyle={containerStyle}
+      center={currentCenter}
+      zoom={currentZoom}
+      onClick={handleMapClick}
+    >
+      {position && (
+        <Marker
+          position={position}
+          draggable={true}
+          onDragEnd={handleMarkerDragEnd}
+        />
+      )}
+    </GoogleMap>
   );
 };
 

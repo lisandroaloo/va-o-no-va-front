@@ -249,7 +249,7 @@ export default function ResultadoPage() {
   // Convertir datos de competencia para el gráfico
   const ratingData = analysisData.competition ? convertCompetitionToRatingData(analysisData.competition) : []
 
-  const handleAdvancedAIAnalysis = async () => {
+  /*const handleAdvancedAIAnalysis = async () => {
     if (!analysisData) return;
 
     setIsAnalyzingWithAI(true);
@@ -290,7 +290,7 @@ export default function ResultadoPage() {
     } finally {
       setIsAnalyzingWithAI(false);
     }
-  };
+  };*/
 
  return (
     <PageLayout>
@@ -429,33 +429,72 @@ export default function ResultadoPage() {
               </div>
             </div>
 
-            {/* Botón para mostrar/ocultar recomendaciones */}
-            <div className="border-t pt-4">
-              <button
-                onClick={() => setShowRecommendations(!showRecommendations)}
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors"
-              >
-                <span className={`transform transition-transform ${showRecommendations ? "rotate-90" : ""}`}>▶</span>
-                <span className="text-sm font-medium">
-                  {showRecommendations ? "Ocultar recomendaciones" : "Ver recomendaciones estratégicas"}
-                </span>
-              </button>
-            </div>
-
-            {/* Recomendaciones (colapsables) */}
-            {showRecommendations && analysisData.recommendations.length > 0 && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="font-bold text-lg text-blue-900 mb-3">🎯 Recomendaciones estratégicas</h3>
-                <ul className="space-y-2">
-                  {analysisData.recommendations.map((rec, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <span className="mt-1 text-blue-600">•</span>
-                      <span className="text-blue-800">{rec}</span>
-                    </li>
-                  ))}
-                </ul>
+            {/* Recomendaciones */}
+            {analysisData.recommendations && analysisData.recommendations.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="font-bold text-lg">🎯 Recomendaciones estratégicas</h3>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <ul className="space-y-2 ">
+                    {analysisData.recommendations.map((rec, index) => (
+                      <li key={index} className="flex items-center gap-2">
+                        <span className="mt-1  text-blue-600">•</span>
+                        <span className="text-blue-800">{rec}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             )}
+
+            {/* Detalles del análisis */}
+            <div className="space-y-3">
+              <h3 className="font-bold text-lg">📊 Detalles del análisis</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 border rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">📍</span>
+                    <span className="font-medium">Ubicación</span>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    Coordenadas: {analysisData.latitude.toFixed(4)}, {analysisData.longitude.toFixed(4)}
+                  </p>
+                  <p className="text-sm text-gray-600">Análisis geográfico y demográfico de la zona.</p>
+                </div>
+
+                <div className="p-4 border rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">{getComercioEmoji()}</span>
+                    <span className="font-medium">Tipo de negocio</span>
+                  </div>
+                  <p className="text-sm text-gray-600">Categoría: {{
+                "convenience_store": "Kiosco",
+                "restaurant": "Restaurante",
+                "cafe": "Café"
+              }[analysisData.businessType] } </p>
+                  <p className="text-sm text-gray-600">Análisis específico del sector y requerimientos.</p>
+                </div>
+
+                <div className="p-4 border rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">💰</span>
+                    <span className="font-medium">Presupuesto</span>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    Inversión inicial: ${analysisData.budget.toLocaleString()} USD
+                  </p>
+                  <p className="text-sm text-gray-600">Evaluación de suficiencia y optimización de recursos.</p>
+                </div>
+
+                <div className="p-4 border rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">🎯</span>
+                    <span className="font-medium">Metodología</span>
+                  </div>
+                  <p className="text-sm text-gray-600">Análisis multifactorial</p>
+                  <p className="text-sm text-gray-600">Evaluación de mercado, competencia y factores de riesgo.</p>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="p-6 border-t flex flex-col sm:flex-row gap-4">
@@ -480,6 +519,20 @@ export default function ResultadoPage() {
                   <>📄 Descargar reporte</>
                 )}
               </button>
+              {/*<button 
+                //onClick={handleAdvancedAIAnalysis}
+                disabled={isAnalyzingWithAI}
+                className="flex-1 sm:flex-none inline-flex items-center justify-center rounded-md border border-blue-500 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isAnalyzingWithAI ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700 mr-2"></div>
+                    Analizando IA...
+                  </>
+                ) : (
+                  <>🧠 Profundizar Análisis IA</>
+                )}
+              </button>*/}
               <button className="flex-1 sm:flex-none inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
                 📤 Compartir resultados
               </button>

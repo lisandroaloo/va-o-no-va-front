@@ -17,6 +17,8 @@ export default function FormularioPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     direccion: "",
+    latitud: "",
+    longitud: "",
     tipoComercio: "",
     presupuesto: "",
   })
@@ -26,12 +28,18 @@ export default function FormularioPage() {
   const { loading, postIdea } = usePostIdea(); // ✅ Correcto si devuelve un objeto
 
   useEffect(() => {
-    if (coordinates) {
+    // Priorizar coordenadas manuales si están disponibles
+    const lat = Number.parseFloat(formData.latitud);
+    const lng = Number.parseFloat(formData.longitud);
+    if (!Number.isNaN(lat) && !Number.isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+      setMarkerPosition({ lat, lng });
+      setCoordinates({ lat, lng });
+    } else if (coordinates) {
       setMarkerPosition(coordinates);
     } else {
       setMarkerPosition(null);
     }
-  }, [coordinates]);
+  }, [formData.latitud, formData.longitud, coordinates]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -96,12 +104,25 @@ export default function FormularioPage() {
   // Manejar coordenadas obtenidas del autocomplete
   const handleAddressCoordinates = (newCoordinates: { lat: number; lng: number }) => {
     setCoordinates(newCoordinates)
+    // Actualizar también los campos manuales
+    setFormData((prev) => ({
+      ...prev,
+      latitud: newCoordinates.lat.toFixed(6),
+      longitud: newCoordinates.lng.toFixed(6),
+    }))
   }
 
   // Manejar clics en el mapa
   const handleMapPositionChange = async (newPosition: { lat: number; lng: number }) => {
     setCoordinates(newPosition)
     setMarkerPosition(newPosition)
+    
+    // Actualizar campos manuales
+    setFormData((prev) => ({
+      ...prev,
+      latitud: newPosition.lat.toFixed(6),
+      longitud: newPosition.lng.toFixed(6),
+    }))
     
     // Obtener la dirección correspondiente a las coordenadas
     const address = await reverseGeocode(newPosition.lat, newPosition.lng)
@@ -118,12 +139,21 @@ export default function FormularioPage() {
       let lat: number
       let lng: number
 
-      // Si tenemos coordenadas, usarlas directamente
-      if (coordinates) {
+      // Prioridad 1: Coordenadas manuales
+      const manualLat = Number.parseFloat(formData.latitud)
+      const manualLng = Number.parseFloat(formData.longitud)
+      
+      if (!Number.isNaN(manualLat) && !Number.isNaN(manualLng)) {
+        lat = manualLat
+        lng = manualLng
+      }
+      // Prioridad 2: Coordenadas del autocomplete/mapa
+      else if (coordinates) {
         lat = coordinates.lat
         lng = coordinates.lng
-      } else if (formData.direccion.trim()) {
-        // Si solo tenemos dirección, geocodificarla
+      } 
+      // Prioridad 3: Geocodificar dirección
+      else if (formData.direccion.trim()) {
         const coords = await geocodeAddress(formData.direccion)
         if (!coords) {
           alert("No se pudo obtener las coordenadas de la dirección proporcionada")
@@ -133,7 +163,7 @@ export default function FormularioPage() {
         lat = coords.lat
         lng = coords.lng
       } else {
-        alert("Por favor, ingresa una dirección o selecciona una ubicación en el mapa")
+        alert("Por favor, ingresa una dirección, coordenadas o selecciona una ubicación en el mapa")
         setIsLoading(false)
         return
       }
@@ -198,7 +228,7 @@ export default function FormularioPage() {
           <div className="p-6 border-b">
             <h2 className="text-2xl font-bold">Análisis de viabilidad comercial</h2>
             <p className="text-gray-600 mt-2">
-              Ingresa la dirección de tu negocio o selecciona una ubicación en el mapa para evaluar su viabilidad comercial.
+              Ingresa la dirección de tu negocio o coordenadas específicas para evaluar su viabilidad comercial.
             </p>
           </div>
           <form onSubmit={handleSubmit}>
@@ -217,11 +247,55 @@ export default function FormularioPage() {
                       onChange={handleAddressChange}
                       onCoordinatesChange={handleAddressCoordinates}
                       disabled={isLoading}
-                      placeholder="Ej: Av. Corrientes 1000, CABA, Argentina"
+                      placeholder="Ej: 1600 Pennsylvania Avenue NW, Washington, DC"
                     />
                     <p className="text-xs text-gray-500">
                       Escribe y selecciona la dirección de tu negocio desde las sugerencias
                     </p>
+                  </div>
+
+                  {/* Campos de coordenadas manuales */}
+                  <div className="mt-4">
+                    <label className="text-sm font-medium text-gray-600">O ingresa coordenadas específicas:</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                      <div className="space-y-2">
+                        <label htmlFor="latitud" className="text-sm font-medium">
+                          Latitud
+                        </label>
+                        <input
+                          id="latitud"
+                          name="latitud"
+                          type="number"
+                          step="any"
+                          placeholder="Ej: 39.9526"
+                          value={formData.latitud}
+                          onChange={handleChange}
+                          disabled={isLoading}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          suppressHydrationWarning={true}
+                        />
+                        <p className="text-xs text-gray-500">Rango válido: -90 a 90</p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label htmlFor="longitud" className="text-sm font-medium">
+                          Longitud
+                        </label>
+                        <input
+                          id="longitud"
+                          name="longitud"
+                          type="number"
+                          step="any"
+                          placeholder="Ej: -75.1652"
+                          value={formData.longitud}
+                          onChange={handleChange}
+                          disabled={isLoading}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          suppressHydrationWarning={true}
+                        />
+                        <p className="text-xs text-gray-500">Rango válido: -180 a 180</p>
+                      </div>
+                    </div>
                   </div>
 
                   {/* MAP COMPONENT INTEGRATION */}
@@ -235,7 +309,7 @@ export default function FormularioPage() {
                       />
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      Haz clic en el mapa para seleccionar una ubicación. La dirección se completará automáticamente.
+                      Haz clic en el mapa para seleccionar una ubicación. La dirección y coordenadas se completarán automáticamente.
                     </p>
                   </div>
                 </GoogleMapsWrapper>
@@ -253,6 +327,7 @@ export default function FormularioPage() {
                   required
                   disabled={isLoading}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  suppressHydrationWarning={true}
                 >
                   <option value="">Selecciona el tipo de comercio</option>
                   <option value="cafe">☕ Café</option>
@@ -275,6 +350,7 @@ export default function FormularioPage() {
                   required
                   disabled={isLoading}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  suppressHydrationWarning={true}
                 />
                 <p className="text-xs text-gray-500">Ingresa tu presupuesto inicial disponible</p>
               </div>

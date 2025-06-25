@@ -68,6 +68,12 @@ const usePostIdea = () => {
 
       const res: EvaluationResult = await _res.json()
 
+      // 🔍 DEBUG: Ver exactamente qué datos llegan del backend
+      console.log('🎯 BACKEND RESPONSE - Datos completos:', res)
+      console.log('🎯 BACKEND RESPONSE - Competition object:', res.competition)
+      console.log('🎯 BACKEND RESPONSE - Competition type:', typeof res.competition)
+      console.log('🎯 BACKEND RESPONSE - Competition keys:', res.competition ? Object.keys(res.competition) : 'null')
+
       return res
     } catch (error: unknown) {
       if (error instanceof Error) {

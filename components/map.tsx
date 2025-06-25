@@ -1,4 +1,4 @@
-import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
 import { useCallback } from 'react';
 
 const defaultContainerStyle = {
@@ -7,8 +7,8 @@ const defaultContainerStyle = {
 };
 
 const defaultCenter = {
-  lat: -34.6037,
-  lng: -58.3816,
+  lat: 39.9526,  // Filadelfia, PA
+  lng: -75.1652,
 };
 
 interface MapComponentProps {
@@ -26,7 +26,10 @@ const MapComponent = ({
   initialZoom = 15,
   defaultZoom = 10,
 }: MapComponentProps) => {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const { isLoaded, loadError } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+  });
 
   const handleMapClick = useCallback(
     (event: google.maps.MapMouseEvent) => {
@@ -48,10 +51,13 @@ const MapComponent = ({
     [onPositionChange]
   );
 
-  if (!apiKey) {
-    console.error("Google Maps API key is not defined.");
-    // Return a fallback UI or null
-    return <div style={{ padding: '20px', textAlign: 'center', border: '1px solid #ccc', borderRadius: '4px', background: '#f9f9f9' }}>Error: La clave API de Google Maps no está configurada. El mapa no se puede mostrar.</div>;
+  if (loadError) {
+    console.error("Error loading Google Maps:", loadError);
+    return <div style={{ padding: '20px', textAlign: 'center', border: '1px solid #ccc', borderRadius: '4px', background: '#f9f9f9' }}>Error: No se pudo cargar Google Maps. Verifica tu clave API.</div>;
+  }
+
+  if (!isLoaded) {
+    return <div style={{ padding: '20px', textAlign: 'center', border: '1px solid #ccc', borderRadius: '4px', background: '#f9f9f9' }}>Cargando mapa...</div>;
   }
 
   const currentCenter = position || defaultCenter;
@@ -59,22 +65,20 @@ const MapComponent = ({
   const containerStyle = { ...defaultContainerStyle, height: mapHeight };
 
   return (
-    <LoadScript googleMapsApiKey={apiKey}>
-      <GoogleMap
-        mapContainerStyle={containerStyle}
-        center={currentCenter}
-        zoom={currentZoom}
-        onClick={handleMapClick}
-      >
-        {position && (
-          <Marker
-            position={position}
-            draggable={true}
-            onDragEnd={handleMarkerDragEnd}
-          />
-        )}
-      </GoogleMap>
-    </LoadScript>
+    <GoogleMap
+      mapContainerStyle={containerStyle}
+      center={currentCenter}
+      zoom={currentZoom}
+      onClick={handleMapClick}
+    >
+      {position && (
+        <Marker
+          position={position}
+          draggable={true}
+          onDragEnd={handleMarkerDragEnd}
+        />
+      )}
+    </GoogleMap>
   );
 };
 

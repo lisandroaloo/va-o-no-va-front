@@ -134,12 +134,13 @@ export default function FormularioPage() {
                       name="latitud"
                       type="number"
                       step="any"
-                      placeholder="Ej: -34.6037"
+                      placeholder="Ej: 39.9526"
                       value={formData.latitud}
                       onChange={handleChange}
                       required
                       disabled={isLoading}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      suppressHydrationWarning={true}
                     />
                     <p className="text-xs text-gray-500">Rango válido: -90 a 90</p>
                   </div>
@@ -153,12 +154,13 @@ export default function FormularioPage() {
                       name="longitud"
                       type="number"
                       step="any"
-                      placeholder="Ej: -58.3816"
+                      placeholder="Ej: -75.1652"
                       value={formData.longitud}
                       onChange={handleChange}
                       required
                       disabled={isLoading}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      suppressHydrationWarning={true}
                     />
                     <p className="text-xs text-gray-500">Rango válido: -180 a 180</p>
                   </div>
@@ -189,6 +191,7 @@ export default function FormularioPage() {
                   required
                   disabled={isLoading}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  suppressHydrationWarning={true}
                 >
                   <option value="">Selecciona el tipo de comercio</option>
                   <option value="cafe">☕ Café</option>
@@ -211,6 +214,7 @@ export default function FormularioPage() {
                   required
                   disabled={isLoading}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  suppressHydrationWarning={true}
                 />
                 <p className="text-xs text-gray-500">Ingresa tu presupuesto inicial disponible</p>
               </div>

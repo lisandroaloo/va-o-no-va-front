@@ -336,7 +336,7 @@ export async function POST(request: NextRequest) {
                         </div>
                         <div class="metric-bar">
                             <div class="metric-fill ${analysisData.risk.value <= 30 ? "green" : analysisData.risk.value <= 60 ? "yellow" : "red"}" 
-                                 style="width: ${analysisData.risk_score}%"></div>
+                                 style="width: ${analysisData.risk.value}%"></div>
                         </div>
                         <div class="metric-interpretation">
                             ${getScoreInterpretation(analysisData.risk.value, "risk")}
@@ -346,23 +346,38 @@ export async function POST(request: NextRequest) {
                     <div class="metric-card">
                         <div class="metric-header">
                             <span class="metric-title">🏢 Análisis de Competencia</span>
-                            <span class="metric-score">${analysisData.competition.value}</span>
+                            <span class="metric-score">${analysisData.competition ? 
+                                (analysisData.competition.oneStar + analysisData.competition.twoStar + 
+                                 analysisData.competition.threeStar + analysisData.competition.fourStar + 
+                                 analysisData.competition.fiveStar) : 0}</span>
                         </div>
                        <div class="metric-bar">
                         <div
                             class="metric-fill 
-                            ${analysisData.competition.value >= 20 ? "red" :
-                analysisData.competition.value >= 10 ? "yellow" : "green"}"
-                            style="width: ${analysisData.competition.value < 10
-                ? 10
-                : analysisData.competition.value <= 20
-                    ? 50
-                    : 100
-            }%">
+                            ${(() => {
+                                const total = analysisData.competition ? 
+                                    (analysisData.competition.oneStar + analysisData.competition.twoStar + 
+                                     analysisData.competition.threeStar + analysisData.competition.fourStar + 
+                                     analysisData.competition.fiveStar) : 0;
+                                return total >= 20 ? "red" : total >= 10 ? "yellow" : "green";
+                            })()}"
+                            style="width: ${(() => {
+                                const total = analysisData.competition ? 
+                                    (analysisData.competition.oneStar + analysisData.competition.twoStar + 
+                                     analysisData.competition.threeStar + analysisData.competition.fourStar + 
+                                     analysisData.competition.fiveStar) : 0;
+                                return total < 10 ? 10 : total <= 20 ? 50 : 100;
+                            })()}%">
                         </div>
                         </div>
                         <div class="metric-interpretation">
-                            ${getScoreInterpretation(analysisData.competition.value, "competition")}
+                            ${(() => {
+                                const total = analysisData.competition ? 
+                                    (analysisData.competition.oneStar + analysisData.competition.twoStar + 
+                                     analysisData.competition.threeStar + analysisData.competition.fourStar + 
+                                     analysisData.competition.fiveStar) : 0;
+                                return getScoreInterpretation(total, "competition");
+                            })()}
                         </div>
                     </div>
                 </div>

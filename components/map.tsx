@@ -7,8 +7,8 @@ const defaultContainerStyle = {
 };
 
 const defaultCenter = {
-  lat: -34.6037,
-  lng: -58.3816,
+  lat: 39.9526,
+  lng: -75.1652,
 };
 
 interface MapComponentProps {

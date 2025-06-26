@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { PageLayout } from "@/components/page-layout"
@@ -24,32 +24,33 @@ export default function FormularioPage() {
   })
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null)
   const [markerPosition, setMarkerPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [lastAutocompleteAddress, setLastAutocompleteAddress] = useState<string>("");
 
   const { loading, postIdea } = usePostIdea(); // ✅ Correcto si devuelve un objeto
 
   // Función para actualizar el marcador del mapa
   const updateMarkerPosition = useCallback(() => {
-    const lat = Number.parseFloat(formData.latitud);
-    const lng = Number.parseFloat(formData.longitud);
-    
-    // Prioridad 1: Coordenadas manuales válidas
-    if (!Number.isNaN(lat) && !Number.isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-      setMarkerPosition({ lat, lng });
-    }
-    // Prioridad 2: Coordenadas del autocomplete/mapa
-    else if (coordinates) {
+    if (coordinates) {
       setMarkerPosition(coordinates);
-    }
-    // Sin coordenadas válidas
-    else {
+    } else {
       setMarkerPosition(null);
     }
-  }, [formData.latitud, formData.longitud, coordinates]);
+  }, [coordinates]);
 
   // Efecto para actualizar marcador cuando cambian las coordenadas
   useEffect(() => {
     updateMarkerPosition();
   }, [updateMarkerPosition]);
+
+  // Limpiar timeout al desmontar el componente
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -109,28 +110,49 @@ export default function FormularioPage() {
   // Manejar cambios en el campo de dirección
   const handleAddressChange = (address: string) => {
     setFormData((prev) => ({ ...prev, direccion: address }))
+    
+    // Si la dirección cambió respecto a la del autocomplete, limpiar coordenadas
+    if (lastAutocompleteAddress && address !== lastAutocompleteAddress) {
+      setCoordinates(null);
+      setLastAutocompleteAddress("");
+    }
+    
+    // Limpiar el timeout anterior si existe
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    
+    // Solo hacer geocodificación si hay texto y no está vacío
+    if (address.trim().length > 3) {
+      debounceTimeoutRef.current = setTimeout(async () => {
+        try {
+          const coords = await geocodeAddress(address.trim());
+          if (coords) {
+            setCoordinates(coords);
+            setFormData((prev) => ({
+              ...prev,
+              latitud: coords.lat.toFixed(6),
+              longitud: coords.lng.toFixed(6),
+            }));
+          }
+        } catch (error) {
+          console.error("Error en geocodificación automática:", error);
+        }
+      }, 1500); // Esperar 1.5 segundos después de que el usuario deje de escribir
+    }
   }
 
   // Manejar coordenadas obtenidas del autocomplete
   const handleAddressCoordinates = useCallback((newCoordinates: { lat: number; lng: number }) => {
-    // Solo actualizar si no hay coordenadas manuales válidas
-    const manualLat = Number.parseFloat(formData.latitud);
-    const manualLng = Number.parseFloat(formData.longitud);
-    const hasValidManualCoords = !Number.isNaN(manualLat) && !Number.isNaN(manualLng) && 
-                                 manualLat >= -90 && manualLat <= 90 && manualLng >= -180 && manualLng <= 180;
-    
-    if (!hasValidManualCoords) {
-      setCoordinates(newCoordinates);
-      // Actualizar también los campos manuales solo si están vacíos
-      if (formData.latitud === "" && formData.longitud === "") {
-        setFormData((prev) => ({
-          ...prev,
-          latitud: newCoordinates.lat.toFixed(6),
-          longitud: newCoordinates.lng.toFixed(6),
-        }));
-      }
-    }
-  }, [formData.latitud, formData.longitud]);
+    setCoordinates(newCoordinates);
+    setLastAutocompleteAddress(formData.direccion); // Guardar la dirección del autocomplete
+    // Actualizar también los campos internos para el formulario
+    setFormData((prev) => ({
+      ...prev,
+      latitud: newCoordinates.lat.toFixed(6),
+      longitud: newCoordinates.lng.toFixed(6),
+    }));
+  }, [formData.direccion]);
 
   // Manejar clics en el mapa
   const handleMapPositionChange = useCallback(async (newPosition: { lat: number; lng: number }) => {
@@ -158,20 +180,12 @@ export default function FormularioPage() {
       let lat: number
       let lng: number
 
-      // Prioridad 1: Coordenadas manuales
-      const manualLat = Number.parseFloat(formData.latitud)
-      const manualLng = Number.parseFloat(formData.longitud)
-      
-      if (!Number.isNaN(manualLat) && !Number.isNaN(manualLng)) {
-        lat = manualLat
-        lng = manualLng
-      }
-      // Prioridad 2: Coordenadas del autocomplete/mapa
-      else if (coordinates) {
+      // Prioridad 1: Coordenadas del autocomplete/mapa
+      if (coordinates) {
         lat = coordinates.lat
         lng = coordinates.lng
       } 
-      // Prioridad 3: Geocodificar dirección
+      // Prioridad 2: Geocodificar dirección si no hay coordenadas
       else if (formData.direccion.trim()) {
         const coords = await geocodeAddress(formData.direccion)
         if (!coords) {
@@ -182,7 +196,7 @@ export default function FormularioPage() {
         lat = coords.lat
         lng = coords.lng
       } else {
-        alert("Por favor, ingresa una dirección, coordenadas o selecciona una ubicación en el mapa")
+        alert("Por favor, ingresa una dirección o selecciona una ubicación en el mapa")
         setIsLoading(false)
         return
       }
@@ -261,60 +275,16 @@ export default function FormularioPage() {
                     <label htmlFor="direccion" className="text-sm font-medium">
                       Dirección
                     </label>
-                                          <AddressAutocomplete
-                        value={formData.direccion}
-                        onChange={handleAddressChange}
-                        onCoordinatesChange={handleAddressCoordinates}
-                        disabled={isLoading}
-                        placeholder="Ej: 1600 Market Street, Philadelphia, PA"
-                      />
+                    <AddressAutocomplete
+                      value={formData.direccion}
+                      onChange={handleAddressChange}
+                      onCoordinatesChange={handleAddressCoordinates}
+                      disabled={isLoading}
+                      placeholder="Av Corrientes 1232, Ciudad Autónoma de Buenos Aires"
+                    />
                     <p className="text-xs text-gray-500">
                       Escribe y selecciona la dirección de tu negocio desde las sugerencias
                     </p>
-                  </div>
-
-                  {/* Campos de coordenadas manuales */}
-                  <div className="mt-4">
-                    <label className="text-sm font-medium text-gray-600">O ingresa coordenadas específicas:</label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                      <div className="space-y-2">
-                        <label htmlFor="latitud" className="text-sm font-medium">
-                          Latitud
-                        </label>
-                        <input
-                          id="latitud"
-                          name="latitud"
-                          type="number"
-                          step="any"
-                          placeholder="Ej: 39.9526"
-                          value={formData.latitud}
-                          onChange={handleChange}
-                          disabled={isLoading}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                          suppressHydrationWarning={true}
-                        />
-                        <p className="text-xs text-gray-500">Rango válido: -90 a 90</p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label htmlFor="longitud" className="text-sm font-medium">
-                          Longitud
-                        </label>
-                        <input
-                          id="longitud"
-                          name="longitud"
-                          type="number"
-                          step="any"
-                          placeholder="Ej: -75.1652"
-                          value={formData.longitud}
-                          onChange={handleChange}
-                          disabled={isLoading}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                          suppressHydrationWarning={true}
-                        />
-                        <p className="text-xs text-gray-500">Rango válido: -180 a 180</p>
-                      </div>
-                    </div>
                   </div>
 
                   {/* MAP COMPONENT INTEGRATION */}

@@ -301,7 +301,7 @@ export default function ResultadoPage() {
             <h2 className="text-2xl font-bold">Resultado del análisis</h2>
             <p className="text-gray-600 mt-2">
               Análisis de viabilidad de un {getName(analysisData.businessType)} con un presupuesto de $
-              {analysisData.budget.toLocaleString()} USD en {analysisData.address.split(",")[0]}
+              {Math.round(analysisData.budget).toLocaleString()} USD en {analysisData.address.split(",")[0]}
             </p>
           </div>
 
@@ -333,7 +333,7 @@ export default function ResultadoPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-3xl font-bold text-gray-900">{analysisData.viabilityScore}%</div>
+                    <div className="text-3xl font-bold text-gray-900">{Math.round(analysisData.viabilityScore)}%</div>
                     <div className="text-sm text-gray-600">
                       {getScoreInterpretation(analysisData.viabilityScore, "viability")}
                     </div>
@@ -364,7 +364,7 @@ export default function ResultadoPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-3xl font-bold text-gray-900">{analysisData.risk.value}%</div>
+                    <div className="text-3xl font-bold text-gray-900">{Math.round(analysisData.risk.value)}%</div>
                     <div className="text-sm text-gray-600">
                       {getScoreInterpretation(analysisData.risk.value, "risk")}
                     </div>

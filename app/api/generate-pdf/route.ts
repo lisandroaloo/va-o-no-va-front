@@ -1,4 +1,3 @@
-import { AnalysisData } from "@/app/resultado/page"
 import { type NextRequest, NextResponse } from "next/server"
 
 interface CompetitionData {
@@ -7,6 +6,19 @@ interface CompetitionData {
   threeStar: number
   fourStar: number
   fiveStar: number
+}
+
+interface AnalysisData {
+  risk: { value: number }
+  viabilityScore: number
+  competition: CompetitionData
+  recommendations: string[]
+  latitude: number
+  longitude: number
+  businessType: string
+  budget: number
+  address: string
+  timestamp: number
 }
 
 export async function POST(request: NextRequest) {
@@ -36,19 +48,29 @@ export async function POST(request: NextRequest) {
     const getComercioEmoji = (businessType: string) => {
       const emojis: Record<string, string> = {
         cafe: "☕",
-        restaurante: "🍽️",
-        kiosco: "🏪",
+        restaurant: "🍽️",
+        convenience_store: "🏪",
       }
       return emojis[businessType] || "🏪"
     }
 
+    // Función para obtener nombre del tipo de comercio
+    const getName = (businessType: string) => {
+      const names: Record<string, string> = {
+        convenience_store: "kiosco",
+        cafe: "café",
+        restaurant: "restaurante"
+      }
+      return names[businessType] || businessType
+    }
+
     // Calcular total de comercios similares
     const totalNearbyBusinesses = analysisData.competition
-      ? analysisData.competition.oneStar +
-        analysisData.competition.twoStar +
-        analysisData.competition.threeStar +
-        analysisData.competition.fourStar +
-        analysisData.competition.fiveStar
+      ? Number(analysisData.competition.oneStar || 0) +
+        Number(analysisData.competition.twoStar || 0) +
+        Number(analysisData.competition.threeStar || 0) +
+        Number(analysisData.competition.fourStar || 0) +
+        Number(analysisData.competition.fiveStar || 0)
       : 0
 
     // Función para obtener interpretación de competencia
@@ -59,25 +81,17 @@ export async function POST(request: NextRequest) {
       return "Competencia alta"
     }
 
-
-    const getName = (name: String) => {
-      if (name === "convenience_store") return "kiosco"
-      if (name === "cafe") return "café"
-      if (name === "restaurant") return "restaurante"
-    }
-
     // Calcular calificación promedio de competidores
     const calculateAverageRating = (competition: CompetitionData) => {
-      const total =
-        competition.oneStar + competition.twoStar + competition.threeStar + competition.fourStar + competition.fiveStar
+      const total = totalNearbyBusinesses
       if (total === 0) return 0
 
       const weightedSum =
-        competition.oneStar * 1 +
-        competition.twoStar * 2 +
-        competition.threeStar * 3 +
-        competition.fourStar * 4 +
-        competition.fiveStar * 5
+        (competition.oneStar || 0) * 1 +
+        (competition.twoStar || 0) * 2 +
+        (competition.threeStar || 0) * 3 +
+        (competition.fourStar || 0) * 4 +
+        (competition.fiveStar || 0) * 5
 
       return (weightedSum / total).toFixed(1)
     }
@@ -455,7 +469,7 @@ export async function POST(request: NextRequest) {
             <div class="header">
                 <h1>📈 Reporte de Viabilidad Comercial</h1>
                 <div class="subtitle">
-                    Análisis de viabilidad para un ${getName(analysisData.businessType)} ${getComercioEmoji(analysisData.businessType)} en ${analysisData.address.split(",")[0]}
+                    Análisis de viabilidad para un ${getName(analysisData.businessType)} ${getComercioEmoji(analysisData.businessType)} en ${analysisData.address ? analysisData.address.split(",")[0] : `coordenadas ${analysisData.latitude.toFixed(4)}, ${analysisData.longitude.toFixed(4)}`}
                 </div>
                 <div class="date">Generado el ${currentDate}</div>
             </div>
@@ -464,7 +478,9 @@ export async function POST(request: NextRequest) {
             <div class="status-section">
                 <div class="status-icon">${overallStatus.icon}</div>
                 <div class="status-message">${overallStatus.message}</div>
-            
+                <div class="status-description">
+                    Basado en el análisis de viabilidad, riesgo y competencia de tu proyecto empresarial.
+                </div>
             </div>
 
             <!-- Métricas Principales -->
@@ -593,6 +609,7 @@ export async function POST(request: NextRequest) {
                         </div>
                         <div class="detail-content">
                             <strong>Coordenadas:</strong> ${analysisData.latitude.toFixed(4)}, ${analysisData.longitude.toFixed(4)}<br>
+                            ${analysisData.address ? `<strong>Dirección:</strong> ${analysisData.address}<br>` : ""}
                             Análisis geográfico y demográfico de la zona.
                         </div>
                     </div>
@@ -603,7 +620,7 @@ export async function POST(request: NextRequest) {
                             <span class="detail-title">Tipo de Negocio</span>
                         </div>
                         <div class="detail-content">
-                            <strong>Categoría:</strong> ${analysisData.businessType}<br>
+                            <strong>Categoría:</strong> ${getName(analysisData.businessType)}<br>
                             Análisis específico del sector y requerimientos.
                         </div>
                     </div>

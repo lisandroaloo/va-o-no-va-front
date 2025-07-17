@@ -7,6 +7,7 @@ interface RequestData {
   longitude: number
   businessType: string
   budget: number
+  description: string
 }
 
 export interface CompetitionScores{
@@ -63,6 +64,7 @@ const usePostIdea = () => {
           longitude: requestData.longitude,
           businessType: requestData.businessType,
           budget: requestData.budget,
+          description: requestData.description
         }),
       })
 

@@ -21,6 +21,7 @@ export default function FormularioPage() {
     longitud: "",
     tipoComercio: "",
     presupuesto: "",
+    descripcion: "",
   })
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null)
   const [markerPosition, setMarkerPosition] = useState<{ lat: number; lng: number } | null>(null);
@@ -220,6 +221,7 @@ export default function FormularioPage() {
         longitude: lng,
         businessType: formData.tipoComercio,
         budget: Number.parseInt(formData.presupuesto),
+        description: formData.descripcion
       }
 
       // Enviar datos al endpoint
@@ -342,6 +344,24 @@ export default function FormularioPage() {
                   suppressHydrationWarning={true}
                 />
                 <p className="text-xs text-gray-500">Ingresa tu presupuesto inicial disponible</p>
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="descripcion" className="text-sm font-medium">
+                  Descripción
+                </label>
+                <input
+                  id="descripcion"
+                  name="descripcion"
+                  type="text"
+                  placeholder="Quiero abrir un café con tematica de Star Wars y platillos veganos"
+                  value={formData.descripcion}
+                  onChange={handleChange}
+                  required
+                  disabled={isLoading}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  suppressHydrationWarning={true}
+                />
+                <p className="text-xs text-gray-500">Ingresa una breve descripción de tu negocio y que lo hace unico</p>
               </div>
             </div>
             <div className="p-6 border-t flex justify-between">

@@ -14,7 +14,7 @@ import { GoogleMapsWrapper } from "@/components/google-maps-wrapper"
 
 export default function FormularioPage() {
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
+  // No longer need local isLoading, the hook will provide it.
   const [formData, setFormData] = useState({
     direccion: "",
     latitud: "",
@@ -28,7 +28,24 @@ export default function FormularioPage() {
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [lastAutocompleteAddress, setLastAutocompleteAddress] = useState<string>("");
 
-  const { loading, postIdea } = usePostIdea(); // ✅ Correcto si devuelve un objeto
+  // Use the new function from the hook
+  const { loading: isSubmitting, error, postIdeaAndNavigate } = usePostIdea()
+
+  // An effect to show errors from the hook
+  useEffect(() => {
+    // We get an error message from the URL if the fetch fails in the background
+    const params = new URLSearchParams(window.location.search)
+    const urlError = params.get("error")
+    if (urlError) {
+      alert(`Error en el análisis: ${decodeURIComponent(urlError)}. Por favor, intente de nuevo.`)
+      // Clean up the URL
+      router.replace("/formulario", { scroll: false })
+    }
+
+    if (error) {
+      alert(`Error: ${error}`)
+    }
+  }, [error, router])
 
   // Función para actualizar el marcador del mapa
   const updateMarkerPosition = useCallback(() => {
@@ -175,85 +192,49 @@ export default function FormularioPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
+    // The hook will set its own loading state. No need for setIsLoading here.
 
-    try {
-      let lat: number
-      let lng: number
+    let lat: number
+    let lng: number
 
-      // Prioridad 1: Coordenadas del autocomplete/mapa
-      if (coordinates) {
-        lat = coordinates.lat
-        lng = coordinates.lng
-      } 
-      // Prioridad 2: Geocodificar dirección si no hay coordenadas
-      else if (formData.direccion.trim()) {
-        const coords = await geocodeAddress(formData.direccion)
-        if (!coords) {
-          alert("No se pudo obtener las coordenadas de la dirección proporcionada")
-          setIsLoading(false)
-          return
-        }
-        lat = coords.lat
-        lng = coords.lng
-      } else {
-        alert("Por favor, ingresa una dirección o selecciona una ubicación en el mapa")
-        setIsLoading(false)
-        return
-      }
-
-      // Validar que las coordenadas estén en rangos válidos
-      if (lat < -90 || lat > 90) {
-        alert("La latitud debe estar entre -90 y 90")
-        setIsLoading(false)
-        return
-      }
-
-      if (lng < -180 || lng > 180) {
-        alert("La longitud debe estar entre -180 y 180")
-        setIsLoading(false)
-        return
-      }
-
-      // Preparar datos para el endpoint
-      const requestData = {
-        latitude: lat,
-        longitude: lng,
-        businessType: formData.tipoComercio,
-        budget: Number.parseInt(formData.presupuesto),
-        description: formData.descripcion
-      }
-
-      // Enviar datos al endpoint
-      const result = await postIdea(requestData)
-
-      // Guardar todos los datos en sessionStorage (se borra al cerrar la pestaña)
-      const analysisData = {
-        // Datos del backend
-        risk: result?.risk,
-        viabilityScore: result?.viabilityScore,
-        competition: result?.competition,
-        recommendations: result?.recommendations,
-        // Datos del formulario
-        latitude: lat,
-        longitude: lng,
-        businessType: formData.tipoComercio,
-        budget: Number.parseInt(formData.presupuesto),
-        address: formData.direccion,
-        // Timestamp para validar que no sea muy viejo
-        timestamp: Date.now(),
-      }
-
-      sessionStorage.setItem("analysisResult", JSON.stringify(analysisData))
-
-      // Navegar a la página de resultados sin parámetros
-      router.push("/resultado")
-    } catch (error) {
-      console.error("Error al analizar viabilidad:", error)
-      alert("Error al procesar el análisis. Por favor, intenta nuevamente.")
-    } finally {
-      setIsLoading(false)
+    // Priority 1: Use coordinates from map click or autocomplete
+    if (coordinates) {
+      lat = coordinates.lat
+      lng = coordinates.lng
     }
+    // Priority 2: Geocode address from input if no coordinates are set
+    else if (formData.direccion.trim()) {
+      const coords = await geocodeAddress(formData.direccion)
+      if (!coords) {
+        alert("No se pudo obtener las coordenadas de la dirección proporcionada. Verifique que sea válida.")
+        return
+      }
+      lat = coords.lat
+      lng = coords.lng
+    } else {
+      alert("Por favor, ingresa una dirección o selecciona una ubicación en el mapa.")
+      return
+    }
+
+    // Basic validation
+    if (!formData.tipoComercio || !formData.presupuesto) {
+      alert("Por favor, completa todos los campos requeridos.")
+      return
+    }
+
+    // Prepare data for the endpoint
+    const requestData = {
+      latitude: lat,
+      longitude: lng,
+      businessType: formData.tipoComercio,
+      budget: Number.parseInt(formData.presupuesto),
+      // The 'description' from the form is now passed correctly.
+      // The hook will add this and the timestamp to the final result.
+      description: formData.direccion,
+    }
+
+    // Call the new function. It will handle navigation and background fetching.
+    postIdeaAndNavigate(requestData, router)
   }
 
   return (
@@ -281,7 +262,7 @@ export default function FormularioPage() {
                       value={formData.direccion}
                       onChange={handleAddressChange}
                       onCoordinatesChange={handleAddressCoordinates}
-                      disabled={isLoading}
+                      disabled={isSubmitting}
                       placeholder="Av Corrientes 1232, Ciudad Autónoma de Buenos Aires"
                     />
                     <p className="text-xs text-gray-500">
@@ -316,7 +297,7 @@ export default function FormularioPage() {
                   value={formData.tipoComercio}
                   onChange={handleChange}
                   required
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                   suppressHydrationWarning={true}
                 >
@@ -339,7 +320,7 @@ export default function FormularioPage() {
                   value={formData.presupuesto}
                   onChange={handleChange}
                   required
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                   suppressHydrationWarning={true}
                 />
@@ -357,7 +338,7 @@ export default function FormularioPage() {
                   value={formData.descripcion}
                   onChange={handleChange}
                   required
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                   suppressHydrationWarning={true}
                 />
@@ -369,7 +350,7 @@ export default function FormularioPage() {
                 <button
                   type="button"
                   className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                   suppressHydrationWarning={true}
                 >
                   ← Volver
@@ -377,11 +358,11 @@ export default function FormularioPage() {
               </Link>
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isSubmitting}
                 className="inline-flex items-center justify-center rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 suppressHydrationWarning={true}
               >
-                {isLoading ? (
+                {isSubmitting ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                     Analizando...

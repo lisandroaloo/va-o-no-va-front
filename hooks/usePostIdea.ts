@@ -1,16 +1,16 @@
-import { IValue } from '@/app/resultado/page';
-import { useState } from 'react'
-
+import { IValue } from "@/app/resultado/page"
+import { useState } from "react"
+import { type AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
 
 interface RequestData {
   latitude: number
   longitude: number
   businessType: string
   budget: number
-  description: string
+  description: string // This is expected to be the address
 }
 
-export interface CompetitionScores{
+export interface CompetitionScores {
   oneStar: number
   twoStar: number
   threeStar: number
@@ -18,7 +18,7 @@ export interface CompetitionScores{
   fiveStar: number
 }
 
- 
+// This represents the raw data structure coming from the backend
 interface EvaluationResult {
   risk: IValue
   viabilityScore: number
@@ -30,64 +30,68 @@ interface EvaluationResult {
   budget: number
 }
 
-const handleAnalizarIdea = async ( requestData:RequestData  ) => {
-  const response = await fetch("http://localhost:8080/ideas/ia", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      latitude: requestData.latitude,
-      longitude: requestData.longitude,
-      businessType: requestData.businessType,
-      budget: requestData.budget,
-    }),
-  });
-
-  const data = await response.json();
-  console.log("Respuesta del análisis IA:", data);
-  return data;
-};
-
 const usePostIdea = () => {
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const postIdea = async ( requestData:RequestData  ) => {
-    try {
-      setLoading(true)
+  const postIdeaAndNavigate = (requestData: RequestData, router: AppRouterInstance) => {
+    setLoading(true)
+    setError(null)
 
-      const _res = await fetch(`http://localhost:8080/idea`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          latitude: requestData.latitude,
-          longitude: requestData.longitude,
-          businessType: requestData.businessType,
-          budget: requestData.budget,
-          description: requestData.description
-        }),
+    // 1. Navigate IMMEDIATELY to the loading screen.
+    // The user will see `app/resultado/loading.tsx` right away.
+    router.push("/resultado")
+
+    // 2. Perform the fetch in the background. We don't `await` it here,
+    // so the function finishes executing immediately after the fetch starts.
+    fetch(`http://localhost:8080/idea`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        latitude: requestData.latitude,
+        longitude: requestData.longitude,
+        businessType: requestData.businessType,
+        budget: requestData.budget,
+        description: requestData.description,
+      }),
+    })
+      .then(async (_res) => {
+        if (!_res.ok) {
+          const errorBody = await _res.json().catch(() => ({ message: "Error fetching data, please try again." }))
+          throw new Error(errorBody.message || `Request failed with status ${_res.status}`)
+        }
+        return _res.json()
       })
+      .then((res: EvaluationResult) => {
+        // 3. When the data is successfully received, we enrich it with the address
+        // from the form and a timestamp.
+        const finalResult = {
+          ...res,
+          address: requestData.description,
+          timestamp: Date.now(),
+        }
 
-      const res: EvaluationResult = await _res.json()
+        // 4. We store the complete data in sessionStorage. The results page
+        // will be waiting for this.
+        sessionStorage.setItem("analysisResult", JSON.stringify(finalResult))
+      })
+      .catch((err: Error) => {
+        console.error("Error posting idea:", err)
+        setError(err.message)
 
-      // 🔍 DEBUG: Ver exactamente qué datos llegan del backend
-      console.log('🎯 BACKEND RESPONSE - Datos completos:', res)
-      console.log('🎯 BACKEND RESPONSE - Competition object:', res.competition)
-      console.log('🎯 BACKEND RESPONSE - Competition type:', typeof res.competition)
-      console.log('🎯 BACKEND RESPONSE - Competition keys:', res.competition ? Object.keys(res.competition) : 'null')
-
-      return res
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        alert(error.message)
-      } else {
-        alert('An unknown error occurred')
-      }
-    } finally {
-      setLoading(false)
-    }
+        // 5. CRITICAL: If the fetch fails, we must redirect the user away from
+        // the loading screen, otherwise they will be stuck forever. We send
+        // them back to the form with an error message.
+        sessionStorage.removeItem("analysisResult") // Clean up partial data
+        router.push(`/formulario?error=${encodeURIComponent(err.message)}`)
+      })
+      .finally(() => {
+        // This loading state is for the submit button on the form page,
+        // it can be set to false once the process is handed off.
+        setLoading(false)
+      })
   }
-  return { loading, postIdea }
+  return { loading, error, postIdeaAndNavigate }
 }
 
 export default usePostIdea

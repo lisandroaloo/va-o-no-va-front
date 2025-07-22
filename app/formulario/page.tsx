@@ -185,7 +185,7 @@ export default function FormularioPage() {
       if (coordinates) {
         lat = coordinates.lat
         lng = coordinates.lng
-      } 
+      }
       // Prioridad 2: Geocodificar dirección si no hay coordenadas
       else if (formData.direccion.trim()) {
         const coords = await geocodeAddress(formData.direccion)
@@ -221,37 +221,19 @@ export default function FormularioPage() {
         longitude: lng,
         businessType: formData.tipoComercio,
         budget: Number.parseInt(formData.presupuesto),
-        description: formData.descripcion
+        description: formData.descripcion,
+        address: formData.direccion, // Incluir dirección para mostrarla después
       }
 
-      // Enviar datos al endpoint
-      const result = await postIdea(requestData)
+      // Guardar los datos del formulario en sessionStorage para la página de análisis
+      sessionStorage.setItem("formDataForAnalysis", JSON.stringify(requestData))
 
-      // Guardar todos los datos en sessionStorage (se borra al cerrar la pestaña)
-      const analysisData = {
-        // Datos del backend
-        risk: result?.risk,
-        viabilityScore: result?.viabilityScore,
-        competition: result?.competition,
-        recommendations: result?.recommendations,
-        // Datos del formulario
-        latitude: lat,
-        longitude: lng,
-        businessType: formData.tipoComercio,
-        budget: Number.parseInt(formData.presupuesto),
-        address: formData.direccion,
-        // Timestamp para validar que no sea muy viejo
-        timestamp: Date.now(),
-      }
+      // Redirigir a la página de carga/análisis
+      router.push("/analizando")
 
-      sessionStorage.setItem("analysisResult", JSON.stringify(analysisData))
-
-      // Navegar a la página de resultados sin parámetros
-      router.push("/resultado")
     } catch (error) {
-      console.error("Error al analizar viabilidad:", error)
-      alert("Error al procesar el análisis. Por favor, intenta nuevamente.")
-    } finally {
+      console.error("Error al preparar el análisis:", error)
+      alert("Error al preparar los datos para el análisis. Por favor, intenta nuevamente.")
       setIsLoading(false)
     }
   }

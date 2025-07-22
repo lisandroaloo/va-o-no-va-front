@@ -1,5 +1,5 @@
 import { IValue } from '@/app/resultado/page';
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 
 
 interface RequestData {
@@ -52,7 +52,7 @@ const handleAnalizarIdea = async ( requestData:RequestData  ) => {
 const usePostIdea = () => {
   const [loading, setLoading] = useState(false)
 
-  const postIdea = async ( requestData:RequestData  ) => {
+  const postIdea = useCallback(async ( requestData:RequestData  ) => {
     try {
       setLoading(true)
 
@@ -86,7 +86,7 @@ const usePostIdea = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
   return { loading, postIdea }
 }
 

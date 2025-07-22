@@ -8,7 +8,7 @@ import { Tooltip } from "@/components/tooltip"
 import { RatingChart } from "@/components/rating-chart"
 
 export interface AnalysisData {
-  risk: IValue
+  risk: number
   viabilityScore: number
   competition: CompetitionScores
   recommendations: string[]
@@ -18,9 +18,6 @@ export interface AnalysisData {
   budget: number
   address: String
   timestamp: number
-}
-export interface IValue {
-  value: number
 }
 
 interface RatingData {
@@ -72,7 +69,7 @@ export default function ResultadoPage() {
 
       // Animar las barras de progreso
       setTimeout(() => setProgressViability(data.viabilityScore || 0), 500)
-      setTimeout(() => setProgressRisk(data.risk?.value || 0), 700)
+      setTimeout(() => setProgressRisk(data.risk || 0), 700)
     } catch (error) {
       console.error("Error loading analysis data:", error)
       sessionStorage.removeItem("analysisResult")
@@ -364,15 +361,15 @@ export default function ResultadoPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-3xl font-bold text-gray-900">{Math.round(analysisData.risk.value)}%</div>
+                    <div className="text-3xl font-bold text-gray-900">{Math.round(analysisData.risk)}%</div>
                     <div className="text-sm text-gray-600">
-                      {getScoreInterpretation(analysisData.risk.value, "risk")}
+                      {getScoreInterpretation(analysisData.risk, "risk")}
                     </div>
                   </div>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-4">
                   <div
-                    className={`h-4 rounded-full transition-all duration-1000 ease-out ${getScoreColor(analysisData.risk.value, true)}`}
+                    className={`h-4 rounded-full transition-all duration-1000 ease-out ${getScoreColor(analysisData.risk, true)}`}
                     style={{ width: `${progressRisk}%` }}
                   ></div>
                 </div>
